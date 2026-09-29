@@ -1,13 +1,30 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Category } from '@/types';
+import { useAppStore } from '@/lib/store';
+import { isCategoryMatch } from '@/lib/categories';
 
 interface CategoryCardProps {
   category: Category;
 }
 
 export default function CategoryCard({ category }: CategoryCardProps) {
+  const { prompts, skills } = useAppStore();
+
+  const realPromptCount = prompts.filter(
+    (p) => isCategoryMatch(p.category, category.name) || isCategoryMatch(p.category, category.slug)
+  ).length;
+
+  const realSkillCount = skills.filter(
+    (s) =>
+      isCategoryMatch(s.category, category.name) ||
+      isCategoryMatch(s.category, category.slug) ||
+      s.tags.some((t) => isCategoryMatch(t, category.name) || isCategoryMatch(t, category.slug))
+  ).length;
+
   return (
     <Link
       href={`/categories/${category.slug}`}
@@ -38,10 +55,12 @@ export default function CategoryCard({ category }: CategoryCardProps) {
 
       <div className="flex items-center gap-2 text-xs font-bold text-[#101010]">
         <span className="bg-white/90 px-2.5 py-1 rounded-full border border-black/5 shadow-2xs">
-          {category.prompt_count} Prompts
+          {realPromptCount} {realPromptCount === 1 ? 'Prompt' : 'Prompts'}
         </span>
         <span className="text-[#8A867D]">&bull;</span>
-        <span className="text-[#8A867D]">{category.skill_count} Skills</span>
+        <span className="text-[#8A867D]">
+          {realSkillCount} {realSkillCount === 1 ? 'Skill' : 'Skills'}
+        </span>
       </div>
     </Link>
   );

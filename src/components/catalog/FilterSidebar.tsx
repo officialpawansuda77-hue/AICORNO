@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Filter, X, RotateCcw } from 'lucide-react';
+import { Filter, RotateCcw } from 'lucide-react';
 import { CATEGORIES, AI_MODELS } from '@/data/categoriesModels';
+import { isCategoryMatch } from '@/lib/categories';
 
 interface FilterSidebarProps {
   type: 'image' | 'video' | 'skill';
@@ -30,7 +31,11 @@ export default function FilterSidebar({ type }: FilterSidebarProps) {
     } else {
       params.set(key, value);
     }
-    router.push(`${pathname}?${params.toString()}`);
+    // A new filter always starts at the first result page. Otherwise a
+    // previous page selection can make a valid filter look empty.
+    params.delete('page');
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
   };
 
   const clearAllFilters = () => {
@@ -75,7 +80,7 @@ export default function FilterSidebar({ type }: FilterSidebarProps) {
         <h4 className="text-xs uppercase tracking-wider font-extrabold text-[#8A867D] mb-2.5">
           Category
         </h4>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 max-h-52 overflow-y-auto pr-1">
           <button
             onClick={() => updateFilter('category', '')}
             className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
@@ -86,19 +91,22 @@ export default function FilterSidebar({ type }: FilterSidebarProps) {
           >
             All
           </button>
-          {CATEGORIES.slice(0, 10).map((cat) => (
-            <button
-              key={cat.slug}
-              onClick={() => updateFilter('category', cat.name)}
-              className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
-                selectedCategory === cat.name
-                  ? 'bg-[#101010] text-[#D8F651]'
-                  : 'bg-white hover:bg-[#F7F4EE] text-[#1A1A1A] border border-[#E8E4DA]'
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
+          {CATEGORIES.map((cat) => {
+            const active = isCategoryMatch(selectedCategory, cat.name) || isCategoryMatch(selectedCategory, cat.slug);
+            return (
+              <button
+                key={cat.slug}
+                onClick={() => updateFilter('category', cat.name)}
+                className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
+                  active
+                    ? 'bg-[#101010] text-[#D8F651]'
+                    : 'bg-white hover:bg-[#F7F4EE] text-[#1A1A1A] border border-[#E8E4DA]'
+                }`}
+              >
+                {cat.name}
+              </button>
+            );
+          })}
         </div>
       </div>
 

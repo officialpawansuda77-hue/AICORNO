@@ -27,6 +27,7 @@ export default function CatalogToolbar({
   const handleSortChange = (sort: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('sort', sort);
+    params.delete('page');
     router.push(`${pathname}?${params.toString()}`);
   };
 
@@ -38,7 +39,9 @@ export default function CatalogToolbar({
     } else {
       params.delete('q');
     }
-    router.push(`${pathname}?${params.toString()}`);
+    params.delete('page');
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
   };
 
   return (
@@ -46,7 +49,7 @@ export default function CatalogToolbar({
       {/* Count & Mobile Filter Trigger */}
       <div className="flex items-center justify-between sm:justify-start gap-3">
         <h2 className="text-xl sm:text-2xl font-black text-[#101010]">
-          {totalCount} <span className="text-[#8A867D] font-bold text-lg">{label}</span>
+          <span>{totalCount}</span>{' '}<span className="text-[#8A867D] font-bold text-lg">{label}</span>
         </h2>
 
         {onOpenMobileFilters && (

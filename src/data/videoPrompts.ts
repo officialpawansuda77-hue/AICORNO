@@ -1,12 +1,12 @@
 import { Prompt } from '@/types';
 
-export const VIDEO_PROMPTS: Prompt[] = [
+const ALL_VIDEO_PROMPTS: Prompt[] = [
   {
     id: 'vid-1',
     title: 'Luxury Car Cinematic Commercial',
     type: 'video',
     prompt: 'FPV drone shot swooping low over a winding mountain highway in Norway, catching a matte titanium Aston Martin speeding through a cliffside curve, tire spray on wet asphalt, camera seamlessly transitions into a close-up profile tracking shot of the glowing brake calipers, sunset reflections dancing across aerodynamic contours, 8k cinematic realism.',
-    description: 'High-octane commercial automotive commercial with dynamic FPV drone pursuit and seamless transition to wheel tracking.',
+    description: 'High-octane automotive commercial with dynamic FPV drone pursuit and seamless transition to wheel tracking.',
     category: 'Automotive',
     subcategory: 'Car Commercial',
     model: 'Veo 3',
@@ -35,7 +35,7 @@ export const VIDEO_PROMPTS: Prompt[] = [
     type: 'video',
     prompt: 'Ultra-slow motion mechanical breakdown of a vintage gold and brass anamorphic camera lens, individual floating optical glass elements aligning in 3D space with microscopic gear teeth turning smoothly, volumetric dust motes caught in golden laser beams, pristine studio lighting.',
     description: 'Mesmerizing mechanical 3D animation showing precision glass optics assembling in zero gravity.',
-    category: '3D',
+    category: '3D & Motion',
     subcategory: 'Industrial Design',
     model: 'Veo 3',
     style: 'Commercial',
@@ -62,7 +62,7 @@ export const VIDEO_PROMPTS: Prompt[] = [
     type: 'video',
     prompt: 'First-person perspective of a robotic titanium hand delicately touching a translucent floating holographic UI orb, rings of light pulsate upon touch, data glyphs cascade outward into glowing particles, deep dark space background, cinematic sound stage depth.',
     description: 'Sci-fi UI interaction clip showcasing tactile feedback, particle emission, and futuristic hand robotics.',
-    category: 'Cinematic',
+    category: 'Cinematic & Film',
     subcategory: 'Sci-Fi UI',
     model: 'Kling 1.5',
     style: 'VFX',
@@ -89,9 +89,9 @@ export const VIDEO_PROMPTS: Prompt[] = [
     type: 'video',
     prompt: 'TikTok creator video hook, smiling girl taps camera lens, sudden seamless transition to cinematic macro water splash enveloping a luxury hyaluronic serum bottle, ultra slow motion 960fps, crystal clear liquid droplets suspended mid-air, bright airy pastel studio lighting, viral hook pacing.',
     description: 'High converting UGC ad hook combining relatable TikTok opening with a 960fps commercial liquid explosion.',
-    category: 'UGC',
+    category: 'UGC & TikTok',
     subcategory: 'Ad Hook',
-    model: 'Nano Banana',
+    model: 'Kling 1.5',
     style: 'Commercial',
     aspect_ratio: '9:16',
     duration: '8s',
@@ -116,7 +116,7 @@ export const VIDEO_PROMPTS: Prompt[] = [
     type: 'video',
     prompt: 'Hyper-smooth 3D simulation of a massive shimmering liquid chrome fabric undulating over invisible rolling spheres, prismatic oil-slick color shifts on peaks, zero gravity floating physics, seamless infinite loop, photorealistic rendering.',
     description: 'Calming, aesthetic procedural cloth simulation designed for high-end digital billboards and web hero backgrounds.',
-    category: '3D',
+    category: '3D & Motion',
     subcategory: 'Motion Design',
     model: 'OpenAI Sora',
     style: '3D',
@@ -170,9 +170,9 @@ export const VIDEO_PROMPTS: Prompt[] = [
     type: 'video',
     prompt: 'Close-up cinematic shot of bubbling molten lava bursting through dark basalt crust, intense blinding orange heat radiating with atmospheric heat distortion ripples, glowing embers swirling into the night air, deep geological grandeur, IMAX documentary grade.',
     description: 'Stunning documentary nature shot of raw magma thermodynamics with real heat distortion ripples.',
-    category: 'Cinematic',
+    category: 'Cinematic & Film',
     subcategory: 'Nature VFX',
-    model: 'Runway Gen-3',
+    model: 'Runway Gen-3 Alpha',
     style: 'Cinematic',
     aspect_ratio: '16:9',
     duration: '10s',
@@ -197,7 +197,7 @@ export const VIDEO_PROMPTS: Prompt[] = [
     type: 'video',
     prompt: 'Extreme macro commercial shot of dark hazelnut espresso dripping from a bottomless portafilter into a double-walled clear glass cup, golden crema tiger stripes forming, swirling velvety liquid texture, warm morning sunlight backlighting the steam rising, premium cafe advertising.',
     description: 'Decadent coffee commercial hero shot with slow-motion extraction and rich tiger-stripe crema.',
-    category: 'Food',
+    category: 'Food & Beverage',
     subcategory: 'Coffee Commercial',
     model: 'Veo 3',
     style: 'Commercial',
@@ -224,7 +224,7 @@ export const VIDEO_PROMPTS: Prompt[] = [
     type: 'video',
     prompt: 'Educational 3D scientific cross-section animation of ancient tree roots underground, glowing cyan water droplets percolating through rich soil layers, capillary action carrying nutrients upward in illuminated veins, peaceful organic tempo, BBC Planet Earth quality.',
     description: 'Enchanting educational visualization of underground botanical biology and water absorption.',
-    category: '3D',
+    category: '3D & Motion',
     subcategory: 'Science Explainer',
     model: 'Veo 3',
     style: 'Documentary',
@@ -251,7 +251,7 @@ export const VIDEO_PROMPTS: Prompt[] = [
     type: 'video',
     prompt: 'Slow motion 120fps fashion runway tracking shot, supermodel strides confidently forward wearing a floor-length chartreuse silk cape that ripples majestically like liquid waves, minimal beige concrete runway, brutalist architecture, cinematic lens flare, high fashion week energy.',
     description: 'High fashion runway video capturing authentic fabric aerodynamics and confident model walk in 120fps.',
-    category: 'Fashion',
+    category: 'Fashion & Editorial',
     subcategory: 'Runway',
     model: 'Kling 1.5',
     style: 'Editorial',
@@ -278,7 +278,7 @@ export const VIDEO_PROMPTS: Prompt[] = [
     type: 'video',
     prompt: 'Atmospheric slow pan down a wet Tokyo street at midnight, neon kanji signs reflecting vividly in moving puddles as cars drive past with soft tire whoosh, pedestrian with clear umbrella walks by, steam rising from sewer grates, Wong Kar-wai color palette and cinematic romance.',
     description: 'Poetic cinematic street video with rain drops rippling neon reflections on dark Tokyo asphalt.',
-    category: 'Cinematic',
+    category: 'Cinematic & Film',
     subcategory: 'Night City',
     model: 'Veo 3',
     style: 'Cinematic',
@@ -328,36 +328,8 @@ export const VIDEO_PROMPTS: Prompt[] = [
   }
 ];
 
-// Additional video prompts to reach minimum 32
-for (let i = 13; i <= 32; i++) {
-  const cat = ['Commercial', 'UGC', 'Automotive', 'Fashion', 'Cinematic', 'Product Ads', 'Food', 'Travel'][i % 8];
-  const modelName = ['Veo 3', 'Kling 1.5', 'OpenAI Sora', 'Runway Gen-3', 'Seedance', 'Hailuo MiniMax'][i % 6];
-  const duration = ['8s', '10s', '15s', '5s', '30s'][i % 5];
-  VIDEO_PROMPTS.push({
-    id: `vid-${i}`,
-    title: `${cat} Dynamic Sequence ${i}`,
-    type: 'video',
-    prompt: `Cinematic ${cat.toLowerCase()} video prompt generated with ${modelName}, featuring ultra high resolution rendering, 60fps fluid temporal consistency, realistic physics, professional lighting, and dynamic camera direction.`,
-    description: `High-definition ${cat.toLowerCase()} motion asset engineered with cinematic camera movements and natural light tracking.`,
-    category: cat === 'Commercial' ? 'Product Ads' : cat,
-    subcategory: 'Campaign',
-    model: modelName,
-    style: i % 2 === 0 ? 'Cinematic' : 'Commercial',
-    aspect_ratio: i % 3 === 0 ? '9:16' : '16:9',
-    duration: duration,
-    camera: 'Smooth tracking motion with subtle tilt',
-    movement: 'Fluid natural pacing and depth movement',
-    lighting: 'Sculpted key light with ambient fill',
-    tags: [cat.toLowerCase(), 'video', 'motion', 'ai-video'],
-    author: { name: 'Aicorn Studio', handle: '@aicorn_motion', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop' },
-    copies: 950 + i * 85,
-    favorites: 420 + i * 30,
-    views: 5200 + i * 410,
-    rating: 4.8,
-    is_pro: i % 3 === 0,
-    is_featured: i % 4 === 0,
-    is_trending: i % 3 === 0,
-    preview_url: `https://images.unsplash.com/photo-${1510000000000 + (i * 987654321) % 2000000000}?q=80&w=1200&auto=format&fit=crop`,
-    created_at: `2026-03-${10 + (i % 18)}`,
-  });
-}
+// Only published prompts belong in the public catalog. This prevents draft
+// examples from appearing as real inventory or inflating catalog counts.
+export const VIDEO_PROMPTS = ALL_VIDEO_PROMPTS.filter((prompt) =>
+  /^(vid-[1-4]|vid-6|vid-7)$/.test(prompt.id)
+);

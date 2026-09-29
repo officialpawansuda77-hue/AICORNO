@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useUser, useAuth, useClerk } from '@clerk/nextjs';
 import { Prompt, Skill, UserSubmission, UserProfile, Category, AIModel } from '@/types';
 import { isEmailAdmin } from './authUtils';
+import { isCategoryMatch } from './categories';
 import { IMAGE_PROMPTS } from '@/data/imagePrompts';
 import { VIDEO_PROMPTS } from '@/data/videoPrompts';
 import { SKILLS_DATA } from '@/data/skillsData';
@@ -11,7 +12,6 @@ import { CATEGORIES as DEFAULT_CATEGORIES, AI_MODELS as DEFAULT_MODELS } from '@
 import { supabase } from './supabase';
 import {
   fetchPromptsFromDb,
-  fetchPromptByIdFromDb,
   recordPromptCopyInDb,
   recordPromptViewInDb,
   toggleFavoriteInDb,
@@ -120,11 +120,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ]);
 
         if (isMounted) {
-          if (cats && cats.length > 0) setCategories(cats);
+          const loadedPrompts = promptsRes?.prompts?.length
+            ? promptsRes.prompts
+            : [...IMAGE_PROMPTS, ...VIDEO_PROMPTS];
+
+          setPrompts(loadedPrompts);
+          setCategories((cats && cats.length > 0 ? cats : DEFAULT_CATEGORIES).map((category) => ({
+            ...category,
+            // Counts are derived from published records, never from the
+            // placeholder totals in the seed/category table.
+            prompt_count: loadedPrompts.filter((prompt) =>
+              isCategoryMatch(prompt.category, category.name) || isCategoryMatch(prompt.category, category.slug)
+            ).length,
+          })));
           if (mods && mods.length > 0) setModels(mods);
-          if (promptsRes && promptsRes.prompts.length > 0) {
-            setPrompts(promptsRes.prompts);
-          }
           if (subs && subs.length > 0) {
             setSubmissions(subs);
           }
@@ -222,7 +231,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (!isUserLoaded) {
-      setIsLoadingAuth(true);
       return;
     }
 

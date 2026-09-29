@@ -124,3 +124,12 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
+
+/* Hide Clerk Development mode watermark badge */
+.cl-internal-b3fm6y,
+.cl-developmentModeBadge,
+[data-localization-key="development_mode"],
+div:has(> [data-localization-key="development_mode"]) {
+  display: none !important;
+}
+

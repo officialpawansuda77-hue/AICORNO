@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Sparkles, Video, Image as ImageIcon, Bot, Flame, ChevronRight } from 'lucide-react';
+import { ArrowRight, Video, Image as ImageIcon, Bot, Flame, ChevronRight } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { CATEGORIES } from '@/data/categoriesModels';
 import PromptCard from '@/components/cards/PromptCard';
@@ -132,6 +132,7 @@ export function TrendingPromptsSection() {
   const filtered = prompts
     .filter((p) => p.is_trending || p.is_featured)
     .filter((p) => (activeTab === 'all' ? true : p.type === activeTab))
+    .sort((a, b) => b.copies - a.copies)
     .slice(0, 6);
 
   return (

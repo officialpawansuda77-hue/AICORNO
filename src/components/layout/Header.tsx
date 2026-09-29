@@ -9,8 +9,6 @@ import {
   ChevronDown,
   Menu,
   X,
-  Sparkles,
-  User,
   PlusCircle,
   LayoutDashboard,
   Shield,
@@ -56,13 +54,31 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Close menus on path change
-  useEffect(() => {
+  const closeMenus = () => {
     setIsPromptsDropdownOpen(false);
     setIsCategoriesDropdownOpen(false);
     setIsUserMenuOpen(false);
     setIsMobileMenuOpen(false);
-  }, [pathname]);
+  };
+
+  // Global Ctrl+K / Cmd+K search shortcut listener
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      // Ignore if it's a repeated key event or if Shift/Alt is held
+      if (e.repeat || e.shiftKey || e.altKey) {
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+    }
+    // Capture the shortcut before focused inputs or browser handlers can
+    // swallow it. Both shortcuts are supported on every platform.
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, []);
 
   return (
     <>
@@ -71,7 +87,7 @@ export default function Header() {
           
           {/* LEFT: AICORN Brand Logo */}
           <div className="flex items-center gap-6 shrink-0">
-            <Link href="/" className="flex items-center gap-2.5 group">
+            <Link href="/" onClick={closeMenus} className="flex items-center gap-2.5 group">
               {/* Minimalist Acorn Emblem */}
               <div className="w-9 h-9 rounded-2xl bg-[#101010] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
                 <svg width="22" height="22" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -281,9 +297,11 @@ export default function Header() {
           </div>
 
           {/* CENTER: Rounded Search Pill */}
-          <div className="flex-1 max-w-md mx-2 sm:mx-4">
+          <div className="hidden sm:flex flex-1 max-w-md mx-2 sm:mx-4">
             <button
               onClick={() => setIsSearchOpen(true)}
+              aria-label="Open search"
+              aria-keyshortcuts="Control+K Meta+K"
               className="w-full flex items-center justify-between px-4 py-2.5 rounded-full bg-white border border-[#E8E4DA] hover:border-[#101010] text-[#8A867D] hover:text-[#1A1A1A] transition-all text-xs sm:text-sm shadow-sm group"
             >
               <span className="truncate">What do you want to create?</span>
@@ -297,7 +315,16 @@ export default function Header() {
           </div>
 
           {/* RIGHT: Actions (Favorites, Submit, User Auth) */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            {/* Compact mobile search keeps the header usable at 390px. */}
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              aria-label="Open search"
+              className="sm:hidden p-2 rounded-full hover:bg-black/5 text-[#1A1A1A]"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+
             {/* Submit Prompt Pill Button */}
             <Link
               href="/submit"
@@ -311,7 +338,7 @@ export default function Header() {
             <Link
               href="/favorites"
               aria-label="Favorites"
-              className="relative p-2.5 rounded-full hover:bg-black/5 text-[#1A1A1A] transition-colors"
+              className="hidden sm:inline-flex relative p-2.5 rounded-full hover:bg-black/5 text-[#1A1A1A] transition-colors"
             >
               <Heart className={`w-5 h-5 ${favorites.length > 0 ? 'text-[#FF4B26] fill-[#FF4B26]' : ''}`} />
               {favorites.length > 0 && (
@@ -323,7 +350,7 @@ export default function Header() {
 
             {/* User Profile or Sign In */}
             {currentUser ? (
-              <div className="relative" ref={userMenuRef}>
+              <div className="relative hidden sm:block" ref={userMenuRef}>
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center gap-2 p-1 pl-2 bg-white border border-[#E8E4DA] hover:border-[#101010] rounded-full transition-all"
@@ -392,7 +419,7 @@ export default function Header() {
             ) : (
               <button
                 onClick={() => setAuthModalOpen(true)}
-                className="bg-[#101010] hover:bg-[#252525] text-white font-bold text-xs px-4 py-2 rounded-full transition-transform active:scale-95"
+                className="hidden sm:inline-flex bg-[#101010] hover:bg-[#252525] text-white font-bold text-xs px-4 py-2 rounded-full transition-transform active:scale-95"
               >
                 Sign In
               </button>
@@ -412,14 +439,14 @@ export default function Header() {
 
         {/* Mobile Navigation Drawer */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden bg-white border-b border-[#E8E4DA] px-6 py-5 space-y-4 animate-in slide-in-from-top-4 duration-200">
+          <div onClick={closeMenus} className="lg:hidden bg-white border-b border-[#E8E4DA] px-6 py-5 space-y-4 animate-in slide-in-from-top-4 duration-200">
             <div className="grid grid-cols-2 gap-2 text-sm font-bold">
               <Link
                 href="/prompts/image"
                 className="p-3 rounded-2xl bg-[#F7F4EE] flex items-center gap-2 text-[#1A1A1A]"
               >
                 <ImageIcon className="w-4 h-4" />
-                <span>Image Prompts</span>
+                <span>Prompts</span>
               </Link>
               <Link
                 href="/prompts/video"
@@ -444,7 +471,7 @@ export default function Header() {
               </Link>
             </div>
 
-            <div className="pt-2 border-t border-[#E8E4DA] flex items-center justify-between text-sm font-bold">
+            <div className="pt-2 border-t border-[#E8E4DA] flex flex-wrap items-center gap-4 text-sm font-bold">
               <Link href="/pricing" className="text-[#1A1A1A] hover:underline">
                 Pricing
               </Link>
@@ -458,6 +485,27 @@ export default function Header() {
                 <Link href="/admin" className="text-[#8A867D] hover:underline">
                   Admin
                 </Link>
+              )}
+              {currentUser ? (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    logout();
+                  }}
+                  className="text-[#FF4B26] hover:underline"
+                >
+                  Sign Out
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setAuthModalOpen(true);
+                  }}
+                  className="text-[#101010] hover:underline"
+                >
+                  Sign In
+                </button>
               )}
             </div>
           </div>

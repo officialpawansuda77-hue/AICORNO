@@ -8,6 +8,7 @@ import PromptCard from '@/components/cards/PromptCard';
 import { useAppStore } from '@/lib/store';
 import { fetchPromptByIdFromDb } from '@/lib/supabaseService';
 import { Prompt } from '@/types';
+import { isCategoryMatch, normalizeCategoryName } from '@/lib/categories';
 import {
   ArrowLeft,
   Copy,
@@ -88,7 +89,7 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
       <AppLayout>
         <div className="max-w-4xl mx-auto px-4 py-24 text-center">
           <div className="w-12 h-12 rounded-full border-2 border-[#101010] border-t-transparent animate-spin mx-auto mb-4" />
-          <p className="text-sm font-bold text-[#101010]">Loading prompt details from Supabase...</p>
+          <p className="text-sm font-bold text-[#101010]">Loading prompt details...</p>
         </div>
       </AppLayout>
     );
@@ -172,7 +173,7 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
   };
 
   const similarPrompts = prompts
-    .filter((p) => p.id !== prompt.id && (p.category === prompt.category || p.type === prompt.type))
+    .filter((p) => p.id !== prompt.id && isCategoryMatch(p.category, prompt.category))
     .slice(0, 3);
 
   return (
@@ -193,7 +194,7 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
               {prompt.type === 'video' ? 'Video Prompts' : 'Image Prompts'}
             </Link>
             <span>/</span>
-            <span className="text-[#8A867D]">{prompt.category}</span>
+            <span className="text-[#8A867D]">{normalizeCategoryName(prompt.category)}</span>
             <span>/</span>
             <span className="text-[#101010] font-bold truncate max-w-[200px]">
               {prompt.title}
@@ -505,7 +506,7 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
                   Similar Prompts
                 </h3>
                 <p className="text-xs text-[#8A867D] mt-0.5">
-                  More visual inspiration in {prompt.category}
+                  More visual inspiration in {normalizeCategoryName(prompt.category)}
                 </p>
               </div>
               <Link

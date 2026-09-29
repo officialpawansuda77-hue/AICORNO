@@ -8,14 +8,11 @@ import {
   Copy,
   Check,
   Play,
-  Sparkles,
-  Share2,
-  Lock,
-  ArrowUpRight,
-  Eye
+  Sparkles
 } from 'lucide-react';
 import { Prompt } from '@/types';
 import { useAppStore } from '@/lib/store';
+import { normalizeCategoryName } from '@/lib/categories';
 import confetti from 'canvas-confetti';
 
 interface PromptCardProps {
@@ -54,7 +51,7 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
         origin: { y: 0.8 },
         colors: ['#D8F651', '#101010', '#FF4B26'],
       });
-    } catch (err) {
+    } catch {
       // safe fallback
     }
 
@@ -81,7 +78,16 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className="aicorn-card group relative flex flex-col overflow-hidden bg-white cursor-pointer"
+      role="link"
+      tabIndex={0}
+      aria-label={`Open ${prompt.title}`}
       onClick={() => router.push(`/prompts/${prompt.id}`)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          router.push(`/prompts/${prompt.id}`);
+        }
+      }}
     >
       {/* MEDIA PREVIEW CONTAINER */}
       <div className={`relative w-full overflow-hidden bg-[#EDEDEA] ${prompt.aspect_ratio === '9:16' ? 'aspect-[9/14]' : prompt.aspect_ratio === '4:5' ? 'aspect-[4/5]' : 'aspect-[16/10]'}`}>
@@ -162,8 +168,8 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
         <div>
           {/* Category & Model Line */}
           <div className="flex items-center justify-between gap-2 mb-1.5">
-            <span className="text-[11px] uppercase tracking-wider font-extrabold text-[#8A867D]">
-              {prompt.category}
+            <span className="text-[11px] font-bold text-[#8A867D]">
+              {normalizeCategoryName(prompt.category)}
             </span>
             <span className="text-[11px] font-bold text-[#101010] bg-[#F7F4EE] px-2 py-0.5 rounded-full border border-[#E8E4DA]">
               {prompt.model}
@@ -172,7 +178,13 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
 
           {/* Title */}
           <h3 className="font-extrabold text-[#1A1A1A] text-base leading-snug line-clamp-1 group-hover:text-black">
-            {prompt.title}
+            <Link
+              href={`/prompts/${prompt.id}`}
+              onClick={(event) => event.stopPropagation()}
+              className="hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#101010] rounded"
+            >
+              {prompt.title}
+            </Link>
           </h3>
 
           {/* Prompt excerpt snippet */}
@@ -207,7 +219,7 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
 
           {/* Copies count & Views */}
           <div className="flex items-center gap-2 text-xs font-semibold text-[#8A867D]">
-            <span>{formatCount(prompt.copies)} copies</span>
+            <span>{formatCount(prompt.copies)}{' '}copies</span>
           </div>
         </div>
 

@@ -7,7 +7,8 @@ import PromptCard from '@/components/cards/PromptCard';
 import SkillCard from '@/components/cards/SkillCard';
 import { useAppStore } from '@/lib/store';
 import { CATEGORIES } from '@/data/categoriesModels';
-import { ArrowLeft, Sparkles, Video, Image as ImageIcon, Bot, Folder } from 'lucide-react';
+import { Video, Image as ImageIcon, Bot } from 'lucide-react';
+import { normalizeCategoryName } from '@/lib/categories';
 
 export default function CategoryDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -19,19 +20,18 @@ export default function CategoryDetailPage({ params }: { params: Promise<{ slug:
     (c) => c.slug.toLowerCase() === slug.toLowerCase() || c.name.toLowerCase() === slug.toLowerCase()
   );
 
-  const catName = category ? category.name : slug.replace(/-/g, ' ');
-
-  // Match prompts
+  // Resolve the route and every stored prompt to the same canonical value.
+  // This is intentionally an exact comparison: /categories/anime must query
+  // the same "Anime & Illustration" value stored on the Ghibli prompt.
+  const catName = normalizeCategoryName(category?.name || slug);
   const categoryPrompts = prompts.filter(
-    (p) =>
-      p.category.toLowerCase().includes(catName.toLowerCase()) ||
-      catName.toLowerCase().includes(p.category.toLowerCase())
+    (p) => normalizeCategoryName(p.category) === catName
   );
 
   const categorySkills = skills.filter(
     (s) =>
-      s.category.toLowerCase().includes(catName.toLowerCase()) ||
-      s.tags.some((t) => t.toLowerCase() === slug.toLowerCase())
+      normalizeCategoryName(s.category) === catName ||
+      s.tags.some((t) => normalizeCategoryName(t) === catName)
   );
 
   const filteredImagePrompts = categoryPrompts.filter((p) => p.type === 'image');

@@ -18,9 +18,32 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "AICORN — Premium AI Prompt & Agent Skill Gallery",
+  metadataBase: new URL('https://aicorn-ai.vercel.app'),
+  title: {
+    default: 'AICORN — Premium AI Prompt & Agent Skill Gallery',
+    template: '%s — AICORN',
+  },
   description:
-    "Discover high-quality AI image prompts, video prompts and agent skills. Preview the result, copy what works, and start creating.",
+    'Discover high-quality AI image prompts, video prompts and agent skills. Preview the result, copy what works, and start creating.',
+  openGraph: {
+    type: 'website',
+    siteName: 'AICORN',
+    title: 'AICORN — Premium AI Prompt & Agent Skill Gallery',
+    description: 'Curated AI image prompts, video prompts, and agent skills for creators.',
+    url: 'https://aicorn-ai.vercel.app/',
+    images: [{
+      url: '/images/porsche-neon-rain.jpg',
+      width: 1365,
+      height: 768,
+      alt: 'Porsche 911 GT3 in neon rain — AICORN prompt preview',
+    }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AICORN — Premium AI Prompt & Agent Skill Gallery',
+    description: 'Curated AI image prompts, video prompts, and agent skills for creators.',
+    images: ['/images/porsche-neon-rain.jpg'],
+  },
   keywords: [
     "AI prompts",
     "image prompts",
@@ -34,6 +57,14 @@ export const metadata: Metadata = {
     "Flux",
   ],
   authors: [{ name: "AICORN Curators" }],
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
+  alternates: {
+    canonical: 'https://aicorn-ai.vercel.app',
+  },
 };
 
 export default function RootLayout({
@@ -42,12 +73,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider
-      publishableKey={
-        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
-        'pk_test_YWRhcHRlZC1ld2UtNDk4NS5jbGVyay5hY2NvdW50cy5kZXYk'
-      }
-    >
+    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
       <html lang="en" className={`${nunito.variable} scroll-smooth`}>
         <head>
           <link rel="icon" href="/favicon.svg" type="image/svg+xml" />

@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import AppLayout from '@/components/layout/AppLayout';
 import HeroSection from '@/components/home/HeroSection';
 import {
@@ -7,7 +8,9 @@ import {
   PopularCategoriesSection,
 } from '@/components/home/HomeSections';
 import Link from 'next/link';
-import { Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ShieldCheck } from 'lucide-react';
+
+export const metadata: Metadata = { alternates: { canonical: '/' } };
 
 export default function HomePage() {
   return (

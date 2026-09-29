@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, X, Sparkles, Video, Image as ImageIcon, Bot, Folder, ArrowRight, CornerDownLeft, Loader2 } from 'lucide-react';
+import { Search, X, Video, Image as ImageIcon, Bot, Folder, ArrowRight, Loader2 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { fetchPromptsFromDb } from '@/lib/supabaseService';
 import { CATEGORIES } from '@/data/categoriesModels';
@@ -16,7 +16,7 @@ interface SearchModalProps {
 
 export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const router = useRouter();
-  const { skills } = useAppStore();
+  const { prompts, skills } = useAppStore();
   const [query, setQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'images' | 'videos' | 'skills' | 'categories'>('all');
   const [isSearching, setIsSearching] = useState(false);
@@ -50,9 +50,11 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   useEffect(() => {
     const q = query.trim();
     if (!q) {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
+      const clearTimer = setTimeout(() => {
+        setSearchResults([]);
+        setIsSearching(false);
+      }, 0);
+      return () => clearTimeout(clearTimer);
     }
 
     setIsSearching(true);
@@ -95,6 +97,9 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const filteredCategories = CATEGORIES.filter(
     (c) => !q || c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q)
   ).slice(0, 6);
+
+  const getCategoryPromptCount = (category: (typeof CATEGORIES)[number]) =>
+    prompts.filter((prompt) => prompt.category === category.name).length;
 
   const handleSelect = (url: string) => {
     onClose();
@@ -367,7 +372,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                   >
                     <div>
                       <h4 className="text-xs font-bold text-[#101010]">{c.name}</h4>
-                      <p className="text-[10px] text-[#8A867D]">{c.prompt_count} prompts</p>
+                      <p className="text-[10px] text-[#8A867D]">{getCategoryPromptCount(c)} prompts</p>
                     </div>
                     <ArrowRight className="w-3.5 h-3.5 text-[#8A867D] group-hover:translate-x-0.5 transition-transform" />
                   </button>

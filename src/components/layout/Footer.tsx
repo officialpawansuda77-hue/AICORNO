@@ -1,6 +1,5 @@
 import React from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, Sparkles } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -111,10 +110,14 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <span className="text-white/40 cursor-default">Privacy Policy</span>
+                <Link href="/privacy" className="hover:text-white transition-colors">
+                  Privacy Policy
+                </Link>
               </li>
               <li>
-                <span className="text-white/40 cursor-default">Terms of Service</span>
+                <Link href="/terms" className="hover:text-white transition-colors">
+                  Terms of Service
+                </Link>
               </li>
             </ul>
           </div>

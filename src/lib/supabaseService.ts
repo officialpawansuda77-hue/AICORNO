@@ -3,6 +3,7 @@ import { Prompt, Category, AIModel, UserSubmission } from '@/types';
 import { CATEGORIES as FALLBACK_CATEGORIES, AI_MODELS as FALLBACK_MODELS } from '@/data/categoriesModels';
 import { IMAGE_PROMPTS } from '@/data/imagePrompts';
 import { VIDEO_PROMPTS } from '@/data/videoPrompts';
+import { normalizeCategoryName, isCategoryMatch } from './categories';
 
 // In-memory view deduplication set
 const viewedPromptSessions = new Set<string>();
@@ -29,13 +30,25 @@ export interface FetchPromptsResponse {
   totalPages: number;
 }
 
+// Static records contain the verified preview assets. When Supabase has a
+// record with the same title, keep its counters and id but use the canonical
+// local media and metadata so a stale DB thumbnail can never misrepresent a
+// prompt (for example, the Porsche or Ghibli previews).
+const CANONICAL_PROMPTS = [...IMAGE_PROMPTS, ...VIDEO_PROMPTS];
+
 // Helper to map DB row to frontend UI Prompt model
 export function mapDbPromptToUI(row: any): Prompt {
-  const categoryName = row.category?.name || row.category_name || row.category || 'General';
-  const subcategoryName = row.subcategory?.name || row.subcategory || 'General';
-  const modelName = row.model?.name || row.model_name || row.model || 'Flux.1 Pro';
+  const canonical = CANONICAL_PROMPTS.find(
+    (prompt) => prompt.title.toLowerCase() === String(row.title || '').toLowerCase()
+  );
+  const rawCategory = canonical?.category || row.category?.name || row.category_name || row.category || 'General';
+  const categoryName = normalizeCategoryName(rawCategory);
+  const subcategoryName = canonical?.subcategory || row.subcategory?.name || row.subcategory || 'General';
+  const modelName = canonical?.model || row.model?.name || row.model_name || row.model || 'Flux.1 Pro';
+  const type = canonical?.type || (row.type as 'image' | 'video') || 'image';
 
-  // Extract tags from joined prompt_tags if available
+  // Extract tags from joined prompt_tags if available, falling back to the
+  // verified local record when the database has no tag relation.
   const tags: string[] = [];
   if (Array.isArray(row.prompt_tags)) {
     row.prompt_tags.forEach((pt: any) => {
@@ -45,43 +58,43 @@ export function mapDbPromptToUI(row: any): Prompt {
     tags.push(...row.tags);
   }
 
+  const previewUrl = canonical?.preview_url || row.image_url || row.thumbnail_url || row.preview_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop';
+  const thumbnails = canonical?.thumbnails || [row.image_url || row.preview_url, row.thumbnail_url].filter(Boolean);
+
   return {
-    id: row.id,
-    title: row.title || 'Untitled Prompt',
-    type: (row.type as 'image' | 'video') || 'image',
-    prompt: row.prompt || '',
-    description: row.description || '',
+    id: row.id || canonical?.id,
+    title: canonical?.title || row.title || 'Untitled Prompt',
+    type,
+    prompt: canonical?.prompt || row.prompt || '',
+    description: canonical?.description || row.description || '',
     category: categoryName,
     subcategory: subcategoryName,
     model: modelName,
-    style: row.style || 'Photorealistic',
-    aspect_ratio: row.aspect_ratio || '16:9',
-    duration: row.duration || (row.type === 'video' ? '8s' : undefined),
-    camera: row.camera || 'Cinematic tracking shot',
-    lighting: row.lighting || 'Studio lighting',
-    lens: row.lens || '50mm Prime f/1.8',
-    composition: row.composition || 'Rule of thirds',
-    mood: row.mood || 'Editorial & Prestigious',
-    preview_url: row.image_url || row.thumbnail_url || row.preview_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop',
-    video_url: row.video_url || undefined,
-    thumbnails: [
-      row.image_url || row.preview_url,
-      row.thumbnail_url,
-    ].filter(Boolean),
-    tags: tags.length > 0 ? tags : ['ai', 'creative'],
-    author: {
+    style: canonical?.style || row.style || 'Photorealistic',
+    aspect_ratio: canonical?.aspect_ratio || row.aspect_ratio || '16:9',
+    duration: canonical?.duration || row.duration || (type === 'video' ? '8s' : undefined),
+    camera: canonical?.camera || row.camera || 'Cinematic tracking shot',
+    lighting: canonical?.lighting || row.lighting || 'Studio lighting',
+    lens: canonical?.lens || row.lens || '50mm Prime f/1.8',
+    composition: canonical?.composition || row.composition || 'Rule of thirds',
+    mood: canonical?.mood || row.mood || 'Editorial & Prestigious',
+    preview_url: previewUrl,
+    video_url: canonical?.video_url || row.video_url || undefined,
+    thumbnails,
+    tags: tags.length > 0 ? tags : canonical?.tags || ['ai', 'creative'],
+    author: canonical?.author || {
       name: row.author_name || 'AICORN Studio',
       handle: row.author_handle || '@aicorn_curator',
       avatar: row.author_avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
     },
-    copies: row.copies_count || row.copies || 0,
-    favorites: row.favorites_count || row.favorites || 0,
-    views: row.views_count || row.views || 0,
-    rating: 5.0,
-    is_pro: Boolean(row.is_pro),
-    is_featured: Boolean(row.featured || row.is_featured),
-    is_trending: Boolean(row.trending || row.is_trending),
-    created_at: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : '2026-03-01',
+    copies: row.copies_count ?? row.copies ?? canonical?.copies ?? 0,
+    favorites: row.favorites_count ?? row.favorites ?? canonical?.favorites ?? 0,
+    views: row.views_count ?? row.views ?? canonical?.views ?? 0,
+    rating: canonical?.rating ?? 5.0,
+    is_pro: row.is_pro ?? canonical?.is_pro ?? false,
+    is_featured: row.featured ?? row.is_featured ?? canonical?.is_featured ?? false,
+    is_trending: row.trending ?? row.is_trending ?? canonical?.is_trending ?? false,
+    created_at: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : canonical?.created_at || '2026-03-01',
   };
 }
 
@@ -103,7 +116,6 @@ export async function fetchPromptsFromDb(params: FetchPromptsParams = {}): Promi
   } = params;
 
   const from = (page - 1) * limit;
-  const to = from + limit - 1;
 
   try {
     let query = supabase
@@ -140,12 +152,9 @@ export async function fetchPromptsFromDb(params: FetchPromptsParams = {}): Promi
       query = query.ilike('style', `%${style}%`);
     }
 
-    // Search filter across title, prompt, description
-    if (search) {
-      query = query.or(
-        `title.ilike.%${search}%,description.ilike.%${search}%,prompt.ilike.%${search}%`
-      );
-    }
+    // Search, category, model, and tag matching happens after mapping so
+    // local verified records (including Ghibli) and legacy DB labels use the
+    // exact same rules.
 
     // Sorting
     if (sort === 'copies') {
@@ -160,10 +169,12 @@ export async function fetchPromptsFromDb(params: FetchPromptsParams = {}): Promi
       query = query.order('views_count', { ascending: false });
     }
 
-    // Pagination
-    query = query.range(from, to);
+    // Fetch the published catalog before client-side normalization/filtering.
+    // Applying range() first used to make a valid category look empty when
+    // the requested page contained records from another category.
+    query = query.range(0, 999);
 
-    const { data, count, error } = await query;
+    const { data, error } = await query;
 
     if (error) {
       console.warn('Supabase prompts query error, using local fallback:', error.message);
@@ -171,32 +182,110 @@ export async function fetchPromptsFromDb(params: FetchPromptsParams = {}): Promi
     }
 
     if (data && data.length > 0) {
-      let filteredResults = data.map(mapDbPromptToUI);
+      const dbPrompts = data.map(mapDbPromptToUI);
+      const staticPool = (type === 'video' ? VIDEO_PROMPTS : type === 'image' ? IMAGE_PROMPTS : [...IMAGE_PROMPTS, ...VIDEO_PROMPTS]);
 
-      // In-memory filter for joined category/model names if not filtered directly in query
-      if (category) {
-        filteredResults = filteredResults.filter(
-          (p) => p.category.toLowerCase() === category.toLowerCase()
-        );
+      // De-duplicate by title. DB rows win for identity/counters while
+      // mapDbPromptToUI supplies the verified local preview for known records.
+      const byTitle = new Map<string, Prompt>();
+      for (const prompt of dbPrompts) {
+        byTitle.set(prompt.title.toLowerCase(), prompt);
       }
+      for (const prompt of staticPool) {
+        if (!byTitle.has(prompt.title.toLowerCase())) {
+          byTitle.set(prompt.title.toLowerCase(), prompt);
+        }
+      }
+
+      let filteredResults = Array.from(byTitle.values());
+
+      // Type filter
+      if (type) {
+        filteredResults = filteredResults.filter((p) => p.type === type);
+      }
+
+      // Robust category matching
+      if (category) {
+        filteredResults = filteredResults.filter((p) => isCategoryMatch(p.category, category));
+      }
+
+      // Model filter
       if (model) {
         filteredResults = filteredResults.filter(
-          (p) => p.model.toLowerCase() === model.toLowerCase()
+          (p) => p.model.toLowerCase().includes(model.toLowerCase()) || model.toLowerCase().includes(p.model.toLowerCase())
         );
       }
 
+      // Style filter
+      if (style) {
+        filteredResults = filteredResults.filter((p) => p.style.toLowerCase().includes(style.toLowerCase()));
+      }
+
+      // Aspect ratio
+      if (aspectRatio) {
+        filteredResults = filteredResults.filter((p) => p.aspect_ratio === aspectRatio);
+      }
+
+      // Duration
+      if (duration) {
+        filteredResults = filteredResults.filter((p) => p.duration === duration);
+      }
+
+      // Subcategory
+      if (subcategory) {
+        const sub = subcategory.toLowerCase();
+        filteredResults = filteredResults.filter((p) =>
+          p.subcategory.toLowerCase().includes(sub) || sub.includes(p.subcategory.toLowerCase())
+        );
+      }
+
+      // Price
+      if (price) {
+        if (price === 'pro') filteredResults = filteredResults.filter((p) => p.is_pro);
+        if (price === 'free') filteredResults = filteredResults.filter((p) => !p.is_pro);
+      }
+
+      // Search
+      if (search) {
+        const s = search.toLowerCase();
+        filteredResults = filteredResults.filter(
+          (p) =>
+            p.title.toLowerCase().includes(s) ||
+            p.description.toLowerCase().includes(s) ||
+            p.prompt.toLowerCase().includes(s) ||
+            p.category.toLowerCase().includes(s) ||
+            p.tags.some((t) => t.toLowerCase().includes(s))
+        );
+      }
+
+      // Sorting
+      if (sort === 'copies') {
+        filteredResults.sort((a, b) => b.copies - a.copies);
+      } else if (sort === 'latest') {
+        filteredResults.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      } else if (sort === 'trending') {
+        filteredResults.sort((a, b) => (b.is_trending ? 1 : 0) - (a.is_trending ? 1 : 0));
+      } else if (sort === 'favorited') {
+        filteredResults.sort((a, b) => b.favorites - a.favorites);
+      } else {
+        filteredResults.sort((a, b) => b.views - a.views);
+      }
+
+      const paged = filteredResults.slice(from, from + limit);
+
       return {
-        prompts: filteredResults,
-        total: count || filteredResults.length,
+        prompts: paged,
+        total: filteredResults.length,
         page,
-        totalPages: Math.ceil((count || filteredResults.length) / limit),
+        totalPages: Math.max(1, Math.ceil(filteredResults.length / limit)),
       };
     }
 
     // If table returned empty array or 0 records, fallback to sample prompts
     return fallbackFilterPrompts(params);
-  } catch (err: any) {
-    console.warn('Supabase network error, using local fallback:', err.message);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown Supabase error';
+    console.warn('Supabase network error, using local fallback:', message);
     return fallbackFilterPrompts(params);
   }
 }
@@ -210,19 +299,28 @@ function fallbackFilterPrompts(params: FetchPromptsParams): FetchPromptsResponse
     filtered = filtered.filter((p) => p.type === params.type);
   }
   if (params.category) {
-    filtered = filtered.filter((p) => p.category.toLowerCase() === params.category!.toLowerCase());
+    filtered = filtered.filter((p) => isCategoryMatch(p.category, params.category!));
   }
   if (params.model) {
-    filtered = filtered.filter((p) => p.model.toLowerCase() === params.model!.toLowerCase());
+    const model = params.model.toLowerCase();
+    filtered = filtered.filter(
+      (p) => p.model.toLowerCase().includes(model) || model.includes(p.model.toLowerCase())
+    );
   }
   if (params.style) {
-    filtered = filtered.filter((p) => p.style.toLowerCase() === params.style!.toLowerCase());
+    filtered = filtered.filter((p) => p.style.toLowerCase().includes(params.style!.toLowerCase()));
   }
   if (params.aspectRatio) {
     filtered = filtered.filter((p) => p.aspect_ratio === params.aspectRatio);
   }
   if (params.duration) {
     filtered = filtered.filter((p) => p.duration === params.duration);
+  }
+  if (params.subcategory) {
+    const sub = params.subcategory.toLowerCase();
+    filtered = filtered.filter((p) =>
+      p.subcategory.toLowerCase().includes(sub) || sub.includes(p.subcategory.toLowerCase())
+    );
   }
   if (params.price) {
     if (params.price === 'pro') filtered = filtered.filter((p) => p.is_pro);
@@ -262,36 +360,46 @@ function fallbackFilterPrompts(params: FetchPromptsParams): FetchPromptsResponse
     prompts: paged,
     total: filtered.length,
     page,
-    totalPages: Math.ceil(filtered.length / limit),
+    totalPages: Math.max(1, Math.ceil(filtered.length / limit)),
   };
 }
 
-// 2. FETCH SINGLE PROMPT BY ID
+// 2. FETCH SINGLE PROMPT BY ID (Instant local resolution for img-* and vid-*)
 export async function fetchPromptByIdFromDb(id: string): Promise<Prompt | undefined> {
-  try {
-    const { data, error } = await supabase
-      .from('prompts')
-      .select(
-        `
-        *,
-        category:categories(id, name, slug),
-        subcategory:subcategories(id, name, slug),
-        model:models(id, name, slug),
-        prompt_tags(tag:tags(id, name, slug))
-      `
-      )
-      .eq('id', id)
-      .single();
-
-    if (!error && data) {
-      return mapDbPromptToUI(data);
-    }
-  } catch (e) {
-    // fallback below
+  const allPrompts = [...IMAGE_PROMPTS, ...VIDEO_PROMPTS];
+  // 1. Instant match in memory (0ms latency for img-10, img-2, etc.)
+  const localMatch = allPrompts.find((p) => p.id === id);
+  if (localMatch) {
+    return localMatch;
   }
 
-  const allPrompts = [...IMAGE_PROMPTS, ...VIDEO_PROMPTS];
-  return allPrompts.find((p) => p.id === id);
+  // 2. Query Supabase if id is a valid UUID
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  if (isUuid) {
+    try {
+      const { data, error } = await supabase
+        .from('prompts')
+        .select(
+          `
+          *,
+          category:categories(id, name, slug),
+          subcategory:subcategories(id, name, slug),
+          model:models(id, name, slug),
+          prompt_tags(tag:tags(id, name, slug))
+        `
+        )
+        .eq('id', id)
+        .single();
+
+      if (!error && data) {
+        return mapDbPromptToUI(data);
+      }
+    } catch (e) {
+      // fallback
+    }
+  }
+
+  return undefined;
 }
 
 // 3. RECORD PROMPT COPY (Increments copies_count and inserts into prompt_copies)
@@ -423,16 +531,25 @@ export async function fetchCategoriesFromDb(): Promise<Category[]> {
       .order('prompt_count', { ascending: false });
 
     if (!error && data && data.length > 0) {
-      return data.map((c) => ({
-        slug: c.slug,
-        name: c.name,
-        description: c.description || '',
-        icon: 'Folder',
-        bg_color: '#F4ECE1',
-        prompt_count: c.prompt_count || 0,
-        skill_count: 2,
-        featured_image: c.cover_image || 'https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=1000&auto=format&fit=crop',
-      }));
+      const fallbackBySlug = new Map(FALLBACK_CATEGORIES.map((category) => [category.slug, category]));
+      return data.map((c) => {
+        const fallback = fallbackBySlug.get(c.slug);
+        return {
+          slug: c.slug,
+          name: normalizeCategoryName(c.name || c.slug),
+          description: c.description || fallback?.description || '',
+          icon: fallback?.icon || 'Folder',
+          bg_color: fallback?.bg_color || '#F4ECE1',
+          prompt_count: CANONICAL_PROMPTS.filter((prompt) =>
+            isCategoryMatch(prompt.category, c.name || c.slug)
+          ).length,
+          skill_count: fallback?.skill_count || 0,
+          // Prefer the canonical in-repo artwork. Legacy DB covers include a
+          // figurine for anime and a white car for automotive, both of which
+          // contradict the prompt being previewed.
+          featured_image: fallback?.featured_image || c.cover_image || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop',
+        };
+      });
     }
   } catch (e) {
     // fallback below
@@ -446,14 +563,26 @@ export async function fetchModelsFromDb(): Promise<AIModel[]> {
     const { data, error } = await supabase.from('models').select('*').order('prompt_count', { ascending: false });
 
     if (!error && data && data.length > 0) {
-      return data.map((m) => ({
-        id: m.slug,
-        name: m.name,
-        type: 'multimodal',
-        badge: 'AICORN Verified',
-        description: m.description || '',
-        prompt_count: m.prompt_count || 0,
-      }));
+      return data.map((m) => {
+        const matchingPrompts = CANONICAL_PROMPTS.filter(
+          (prompt) => prompt.model.toLowerCase() === String(m.name || '').toLowerCase()
+        );
+        const type = matchingPrompts.length > 0
+          ? matchingPrompts.every((prompt) => prompt.type === 'video')
+            ? 'video'
+            : matchingPrompts.every((prompt) => prompt.type === 'image')
+              ? 'image'
+              : 'multimodal'
+          : 'multimodal';
+        return {
+          id: m.slug,
+          name: m.name,
+          type,
+          badge: 'AICORN Verified',
+          description: m.description || '',
+          prompt_count: matchingPrompts.length,
+        };
+      });
     }
   } catch (e) {
     // fallback

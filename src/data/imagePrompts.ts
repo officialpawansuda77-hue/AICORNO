@@ -1,6 +1,6 @@
 import { Prompt } from '@/types';
 
-export const IMAGE_PROMPTS: Prompt[] = [
+const ALL_IMAGE_PROMPTS: Prompt[] = [
   {
     id: 'img-1',
     title: 'Luxury Skincare Product Campaign',
@@ -50,9 +50,9 @@ export const IMAGE_PROMPTS: Prompt[] = [
     lens: '24mm Anamorphic f/1.8',
     composition: 'Dynamic diagonal leading lines',
     mood: 'Moody, adrenaline-fueled, prestigious',
-    preview_url: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=1200&auto=format&fit=crop',
+    preview_url: '/images/porsche-neon-rain.jpg',
     thumbnails: [
-      'https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=600&auto=format&fit=crop',
+      '/images/porsche-neon-rain.jpg',
       'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=600&auto=format&fit=crop'
     ],
     tags: ['automotive', 'porsche', 'supercar', 'neon', 'cinematic', 'night'],
@@ -72,7 +72,7 @@ export const IMAGE_PROMPTS: Prompt[] = [
     type: 'image',
     prompt: 'Vogue editorial fashion portrait of a female model wearing an architectural flowing coral silk gown billowing in wind, sunburst lighting behind the head creating a luminous halo, high fashion pose, fine grain 35mm film texture, muted sand background, sculptural tailoring.',
     description: 'High fashion editorial look with flowing silk, organic curves, and classic high-contrast magazine lighting.',
-    category: 'Fashion',
+    category: 'Fashion & Editorial',
     subcategory: 'Haute Couture',
     model: 'Midjourney v6.1',
     style: 'Editorial',
@@ -136,7 +136,7 @@ export const IMAGE_PROMPTS: Prompt[] = [
     type: 'image',
     prompt: 'Editorial culinary shot of a modern deconstructed dessert, dark slate plate with delicate berry gelee, gold leaf accents, edible micro violas, velvety smoked dark chocolate quenelle, dramatic chiaroscuro single softbox lighting, shallow depth of field, food stylist masterwork.',
     description: 'Stunning fine-dining gastronomy shot with rich textures, edible gold leaf, and Michelin-guide lighting.',
-    category: 'Food',
+    category: 'Food & Beverage',
     subcategory: 'Fine Dining',
     model: 'Nano Banana',
     style: 'Luxury',
@@ -165,7 +165,7 @@ export const IMAGE_PROMPTS: Prompt[] = [
     type: 'image',
     prompt: 'Abstract 3D digital render of floating glass spheres with thin-film soap bubble iridescence, refraction caustic patterns dancing across a smooth matte pastel surface, holographic color dispersion, clean studio lighting, Octane render quality, ultra high fidelity.',
     description: 'Hypnotic 3D glassmorphic spheres with prism reflections and dispersion for modern brand identity assets.',
-    category: '3D',
+    category: '3D & Motion',
     subcategory: 'Abstract',
     model: 'Midjourney v6.1',
     style: '3D',
@@ -194,7 +194,7 @@ export const IMAGE_PROMPTS: Prompt[] = [
     type: 'image',
     prompt: 'Cinematic wide frame of a cozy glowing ramen stall tucked into a rain-slicked Shinjuku alleyway, steam billowing out from boiling broth pots into the cold night air, vibrant hanging paper lanterns, neon kanji signs reflecting in street puddles, Blade Runner aesthetic, rich atmospheric depth.',
     description: 'Iconic neo-Tokyo night scene filled with glowing lanterns, neon signage, and steam rising into cold night air.',
-    category: 'Cinematic',
+    category: 'Cinematic & Film',
     subcategory: 'Street Photography',
     model: 'Flux.1 Pro',
     style: 'Cinematic',
@@ -223,7 +223,7 @@ export const IMAGE_PROMPTS: Prompt[] = [
     type: 'image',
     prompt: 'Authentic user-generated content iPhone 16 front-facing camera selfie, a 24-year-old glowing woman smiling casually in bathroom mirror holding a dropper bottle of vitamin C serum, natural window light from left, realistic skin texture, unedited raw social media feel, messy morning hair bun, bright modern bathroom.',
     description: 'High-performing UGC ad style image capturing genuine influencer authenticity and unvarnished morning routine vibes.',
-    category: 'UGC',
+    category: 'UGC & TikTok',
     subcategory: 'Selfie / Hook',
     model: 'Nano Banana',
     style: 'Photorealistic',
@@ -248,11 +248,11 @@ export const IMAGE_PROMPTS: Prompt[] = [
   },
   {
     id: 'img-9',
-    title: 'Swiss Horology Luxury Chronograph',
+    title: 'Titanium Tourbillon Chronograph',
     type: 'image',
     prompt: 'Macro luxury timepiece watch photograph, brushed titanium case with intricate tourbillon movement visible through sapphire crystal dial, rose gold accents on hands, dramatic studio spotlight catching the dial guilloche pattern, resting on dark slate with soft fog, Swiss craftsmanship.',
     description: 'Prestigious watch advertising visual highlighting intricate micro-mechanics, sapphire crystal glints, and matte slate textures.',
-    category: 'Luxury',
+    category: 'Luxury & Jewelry',
     subcategory: 'Watches',
     model: 'Flux.1 Pro',
     style: 'Luxury',
@@ -281,7 +281,7 @@ export const IMAGE_PROMPTS: Prompt[] = [
     type: 'image',
     prompt: 'Hand-painted Studio Ghibli anime style illustration of a rustic wooden train station in the Japanese mountains during golden sunset, fluffy cumulus clouds painted with pastel peach and lavender hues, wildflowers swaying on grassy slopes, warm glowing station lamp, nostalgic watercolor aesthetic.',
     description: 'Heartwarming anime background inspired by classic hand-painted Japanese animation and serene golden hour colors.',
-    category: 'Anime',
+    category: 'Anime & Illustration',
     subcategory: 'Landscape',
     model: 'Midjourney v6.1',
     style: 'Anime',
@@ -291,8 +291,8 @@ export const IMAGE_PROMPTS: Prompt[] = [
     lens: 'Wide hand-drawn projection',
     composition: 'Rule of thirds with train platform on right and rolling hills on left',
     mood: 'Peaceful, nostalgic, enchanting, storybook',
-    preview_url: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1200&auto=format&fit=crop',
-    thumbnails: ['https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=600&auto=format&fit=crop'],
+    preview_url: '/images/ghibli-train-sunset.jpg',
+    thumbnails: ['/images/ghibli-train-sunset.jpg'],
     tags: ['anime', 'ghibli', 'illustration', 'sunset', 'japan', 'scenery'],
     author: { name: 'Aoi Miyazaki', handle: '@aoianime', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop' },
     copies: 5120,
@@ -339,7 +339,7 @@ export const IMAGE_PROMPTS: Prompt[] = [
     type: 'image',
     prompt: 'High-speed action sports photography capturing a powerful Olympic sprinter bursting out of starting blocks, cloud of white chalk dust frozen in mid-air, intense facial concentration, glistening sweat on muscular shoulders, dark stadium floodlight backlighting, 1/8000s shutter speed freeze.',
     description: 'Dynamic sports commercial imagery capturing raw explosive athletic energy and dramatic backlit dust plumes.',
-    category: 'Fitness',
+    category: 'Fitness & Sports',
     subcategory: 'Athletics',
     model: 'Flux.1 Pro',
     style: 'Photorealistic',
@@ -368,7 +368,7 @@ export const IMAGE_PROMPTS: Prompt[] = [
     type: 'image',
     prompt: 'Breathtaking travel landscape photograph of a private caldera infinity pool in Oia Santorini, crystal clear azure water merging seamlessly with Aegean sea, whitewashed volcanic cave suites on the cliff, pastel pink and gold sunrise horizon, peaceful luxury retreat.',
     description: 'Ultra-luxurious Greek island travel visual conveying serenity, infinite horizons, and Cycladic architectural perfection.',
-    category: 'Travel',
+    category: 'Travel & Nature',
     subcategory: 'Islands',
     model: 'Midjourney v6.1',
     style: 'Photorealistic',
@@ -397,7 +397,7 @@ export const IMAGE_PROMPTS: Prompt[] = [
     type: 'image',
     prompt: 'Ultra-close macro photograph of a vivid emerald green human eye, intricate fibrous iris structure resembling cosmic canyons, crystal clear corneal reflection of soft studio ring light, tiny moisture droplets on delicate dark eyelashes, 8k microscope level clarity.',
     description: 'Fascinating biological macro study revealing the cosmic fractal textures of the human eye.',
-    category: 'Beauty',
+    category: 'Beauty & Skincare',
     subcategory: 'Macro',
     model: 'Flux.1 Pro',
     style: 'Photorealistic',
@@ -480,36 +480,8 @@ export const IMAGE_PROMPTS: Prompt[] = [
   }
 ];
 
-// Additional image prompts to reach robust seed target
-for (let i = 17; i <= 32; i++) {
-  const cat = ['Fashion', 'Automotive', 'Product Ads', 'UGC', 'Food', '3D', 'Cinematic', 'Architecture'][i % 8];
-  IMAGE_PROMPTS.push({
-    id: `img-${i}`,
-    title: `${cat} Visual Study ${i}`,
-    type: 'image',
-    prompt: `Masterpiece photograph in category ${cat}, ultra high resolution 8k, cinematic color grading, photorealistic textures, Hasselblad X2D 100C, natural lighting and atmospheric balance, portfolio quality render.`,
-    description: `Professional AI prompt crafted for ${cat.toLowerCase()} visual campaigns with balanced lighting and composition.`,
-    category: cat,
-    subcategory: 'Studio',
-    model: i % 2 === 0 ? 'Flux.1 Pro' : 'Midjourney v6.1',
-    style: i % 3 === 0 ? 'Cinematic' : 'Photorealistic',
-    aspect_ratio: i % 2 === 0 ? '16:9' : '4:5',
-    lighting: 'Sculpted commercial strobe with ambient daylight fill',
-    camera: 'Eye-level studio camera',
-    lens: '50mm Prime f/1.8',
-    composition: 'Harmonious grid alignment',
-    mood: 'Polished, commercial-grade, captivating',
-    preview_url: `https://images.unsplash.com/photo-${1500000000000 + (i * 123456789) % 2000000000}?q=80&w=1200&auto=format&fit=crop`,
-    thumbnails: ['https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=600&auto=format&fit=crop'],
-    tags: [cat.toLowerCase(), 'commercial', 'ai', 'pro-grade'],
-    author: { name: 'Aicorn Collective', handle: '@aicorn_curator', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop' },
-    copies: 800 + i * 75,
-    favorites: 300 + i * 22,
-    views: 4500 + i * 320,
-    rating: 4.8,
-    is_pro: i % 3 === 0,
-    is_featured: i % 5 === 0,
-    is_trending: i % 4 === 0,
-    created_at: `2026-03-${10 + (i % 15)}`,
-  });
-}
+// Keep the public catalog aligned with the published Supabase seed. The remaining
+// draft examples stay in this file for reference but must not inflate the gallery.
+export const IMAGE_PROMPTS = ALL_IMAGE_PROMPTS.filter((prompt) =>
+  /^(img-[1-8]|img-10)$/.test(prompt.id)
+);

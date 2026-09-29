@@ -1,16 +1,15 @@
 'use client';
 
-import React, { use } from 'react';
+import { use } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
+import MarkdownContent from '@/components/ui/MarkdownContent';
 import { BLOG_POSTS } from '@/data/blogData';
-import { ArrowLeft, Clock, Share2, BookOpen, Sparkles, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Clock, Share2, ArrowRight } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 
 export default function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const router = useRouter();
   const { addToast } = useAppStore();
 
   const post = BLOG_POSTS.find((p) => p.slug === slug);
@@ -100,37 +99,10 @@ export default function BlogPostPage({ params }: { params: Promise<{ slug: strin
         </div>
 
         {/* Body Content */}
-        <div className="prose prose-lg max-w-none text-[#1A1A1A] leading-relaxed space-y-6 text-sm sm:text-base">
-          {post.content.split('\n\n').map((paragraph, idx) => {
-            if (paragraph.startsWith('## ')) {
-              return (
-                <h2 key={idx} className="text-2xl font-black text-[#101010] pt-6 pb-2 border-b border-[#E8E4DA]">
-                  {paragraph.replace('## ', '')}
-                </h2>
-              );
-            }
-            if (paragraph.startsWith('### ')) {
-              return (
-                <h3 key={idx} className="text-xl font-extrabold text-[#101010] pt-4">
-                  {paragraph.replace('### ', '')}
-                </h3>
-              );
-            }
-            if (paragraph.startsWith('```')) {
-              const code = paragraph.replace(/```[a-z]*\n?/g, '').trim();
-              return (
-                <pre key={idx} className="p-4 rounded-2xl bg-[#101010] text-[#D8F651] font-mono text-xs overflow-x-auto leading-relaxed my-4">
-                  <code>{code}</code>
-                </pre>
-              );
-            }
-            return (
-              <p key={idx} className="text-[#1A1A1A]/85 leading-relaxed font-normal">
-                {paragraph}
-              </p>
-            );
-          })}
-        </div>
+        <MarkdownContent
+          content={post.content}
+          className="prose prose-lg max-w-none text-[#1A1A1A] leading-relaxed space-y-6 text-sm sm:text-base"
+        />
 
         {/* Related articles */}
         {related.length > 0 && (

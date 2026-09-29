@@ -9,20 +9,14 @@ const isProtectedRoute = createRouteMatcher([
   '/admin(.*)',
 ]);
 
-const defaultSecretKey = 'sk_test_EQUwddTYo5uSPuzQwQuBTC30mbdWXK3uDD7wU8Pr32';
-const defaultPublishableKey = 'pk_test_YWRhcHRlZC1ld2UtNDk4NS5jbGVyay5hY2NvdW50cy5kZXYk';
+// Clerk reads the configured production keys from the environment. Never
+// silently fall back to a test instance in a deployed build.
 
-const clerkHandler = clerkMiddleware(
-  async (auth, req) => {
-    if (isProtectedRoute(req)) {
-      await auth.protect();
-    }
-  },
-  {
-    secretKey: process.env.CLERK_SECRET_KEY || defaultSecretKey,
-    publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || defaultPublishableKey,
+const clerkHandler = clerkMiddleware(async (auth, req) => {
+  if (isProtectedRoute(req)) {
+    await auth.protect();
   }
-);
+});
 
 // Next.js 16 Proxy / Middleware handler
 export default async function middleware(request: NextRequest, event: any) {

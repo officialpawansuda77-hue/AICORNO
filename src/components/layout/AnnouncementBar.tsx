@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { X, Sparkles, ArrowRight } from 'lucide-react';
+import { X, ArrowRight } from 'lucide-react';
 
 export default function AnnouncementBar() {
   const [isVisible, setIsVisible] = useState(true);
@@ -18,7 +18,8 @@ export default function AnnouncementBar() {
             NEW
           </span>
           <p className="truncate text-white/90">
-            <span className="font-semibold text-white">Veo 3 & Opus 5.5 prompts are live.</span> Discover the latest high-converting AI prompts & agent skills.
+            <span className="font-semibold text-white">Veo 3 & Opus 5.5 prompts are live.</span>{' '}
+            Discover the latest high-converting AI prompts & agent skills.
           </p>
         </div>
 

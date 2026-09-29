@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Bot, Copy, Check, Heart, Sparkles, ArrowRight, Terminal } from 'lucide-react';
+import { Copy, Check, Heart, Terminal } from 'lucide-react';
 import { Skill } from '@/types';
 import { useAppStore } from '@/lib/store';
 import confetti from 'canvas-confetti';
@@ -42,7 +42,7 @@ export default function SkillCard({ skill }: SkillCardProps) {
         origin: { y: 0.8 },
         colors: ['#D8F651', '#101010'],
       });
-    } catch (e) {
+    } catch {
       // safe fallback
     }
 
@@ -106,7 +106,9 @@ export default function SkillCard({ skill }: SkillCardProps) {
         {/* Category Pill on bottom banner */}
         <div className="absolute bottom-3 left-3 z-10">
           <span className="bg-black/70 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-full">
-            {skill.category} &bull; {skill.output_type}
+            {skill.category.toLowerCase().trim() === skill.output_type.toLowerCase().trim()
+              ? skill.category
+              : `${skill.category} • ${skill.output_type}`}
           </span>
         </div>
       </div>
@@ -118,7 +120,7 @@ export default function SkillCard({ skill }: SkillCardProps) {
             {skill.title}
           </h3>
 
-          <p className="text-xs text-[#8A867D] line-clamp-2 mt-1.5 font-medium leading-relaxed">
+          <p className="text-xs text-[#8A867D] mt-1.5 font-medium leading-relaxed">
             {skill.description}
           </p>
 
@@ -177,7 +179,7 @@ export default function SkillCard({ skill }: SkillCardProps) {
           </button>
 
           <span className="text-[11px] font-semibold text-[#8A867D] hidden sm:inline">
-            {formatInstalls(skill.installs)} installs
+            {formatInstalls(skill.installs)}{' '}installs
           </span>
         </div>
       </div>

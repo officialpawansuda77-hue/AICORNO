@@ -2,30 +2,23 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowRight, Sparkles, Bot, Video, Image as ImageIcon, Flame } from 'lucide-react';
-import { AI_MODELS } from '@/data/categoriesModels';
+import { ArrowRight, Sparkles, Bot, Image as ImageIcon } from 'lucide-react';
+import { IMAGE_PROMPTS } from '@/data/imagePrompts';
+import { VIDEO_PROMPTS } from '@/data/videoPrompts';
 
-const MARQUEE_ROW_1 = [
-  { title: 'Supercar Neon Cyber Rain', tag: 'Automotive', model: 'Flux Pro', img: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=600&auto=format&fit=crop' },
-  { title: 'Luxury Skincare Serum Macro', tag: 'Product Ads', model: 'Nano Banana', img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=600&auto=format&fit=crop' },
-  { title: 'Haute Couture Silk Billow', tag: 'Fashion', model: 'Midjourney v6', img: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=600&auto=format&fit=crop' },
-  { title: 'Iridescent Glassmorphic 3D Spheres', tag: '3D Render', model: 'Veo 3', img: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop' },
-  { title: 'Brutalist Nordic Pine Villa', tag: 'Architecture', model: 'Midjourney v6', img: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=600&auto=format&fit=crop' },
-  { title: 'Michelin Star Berry Gastronomy', tag: 'Food', model: 'Nano Banana', img: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=600&auto=format&fit=crop' },
-  { title: 'Oia Santorini Private Caldera Pool', tag: 'Travel', model: 'Flux Pro', img: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=600&auto=format&fit=crop' },
-  { title: 'Mechanical Optical Lens Disassembly', tag: '3D Motion', model: 'Veo 3', img: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=600&auto=format&fit=crop' },
-];
+const MARQUEE_ITEMS = [...IMAGE_PROMPTS, ...VIDEO_PROMPTS].map((prompt) => ({
+  id: prompt.id,
+  title: prompt.title,
+  tag: prompt.category,
+  model: prompt.model,
+  img: prompt.preview_url,
+  href: `/prompts/${prompt.id}`,
+}));
 
-const MARQUEE_ROW_2 = [
-  { title: 'Titanium Tourbillon Chronograph', tag: 'Luxury', model: 'Flux Pro', img: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?q=80&w=600&auto=format&fit=crop' },
-  { title: 'UGC TikTok Skincare Water Splash', tag: 'UGC Ads', model: 'Nano Banana', img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=600&auto=format&fit=crop' },
-  { title: 'Studio Ghibli Mountain Train Sunset', tag: 'Anime', model: 'Midjourney v6', img: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=600&auto=format&fit=crop' },
-  { title: 'Tokyo Rain Shinjuku Alleyway', tag: 'Cinematic', model: 'Veo 3', img: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=600&auto=format&fit=crop' },
-  { title: 'Matte Bone White Tech Headphones', tag: 'E-commerce', model: 'Gemini 2.0', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=600&auto=format&fit=crop' },
-  { title: 'Sprinter Athlete Explosion Chalk Dust', tag: 'Fitness', model: 'Flux Pro', img: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=600&auto=format&fit=crop' },
-  { title: 'Liquid Chrome Cloth Fluid Simulation', tag: 'Motion', model: 'Sora', img: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop' },
-  { title: 'Manhattan Skyline Penthouse Golden Hour', tag: 'Real Estate', model: 'Midjourney v6', img: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=600&auto=format&fit=crop' },
-];
+// Build both rows from the same published prompt records. This keeps every
+// marquee card searchable and prevents stale/fake titles from being shown.
+const MARQUEE_ROW_1 = MARQUEE_ITEMS.slice(0, Math.ceil(MARQUEE_ITEMS.length / 2));
+const MARQUEE_ROW_2 = MARQUEE_ITEMS.slice(Math.ceil(MARQUEE_ITEMS.length / 2));
 
 export default function HeroSection() {
   return (
@@ -96,9 +89,10 @@ export default function HeroSection() {
         {/* Row 1 - moves left */}
         <div className="flex animate-marquee-left gap-4">
           {[...MARQUEE_ROW_1, ...MARQUEE_ROW_1].map((item, idx) => (
-            <div
+            <Link
               key={`r1-${idx}`}
-              className="w-56 sm:w-64 h-40 rounded-[22px] overflow-hidden bg-white border border-[#E8E4DA] shadow-sm relative group shrink-0"
+              href={item.href}
+              className="w-56 sm:w-64 h-40 rounded-[22px] overflow-hidden bg-white border border-[#E8E4DA] shadow-sm relative group shrink-0 cursor-pointer block"
             >
               <img
                 src={item.img}
@@ -116,16 +110,17 @@ export default function HeroSection() {
                 </div>
                 <h4 className="text-xs font-bold text-white truncate">{item.title}</h4>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
         {/* Row 2 - moves right */}
         <div className="flex animate-marquee-right gap-4">
           {[...MARQUEE_ROW_2, ...MARQUEE_ROW_2].map((item, idx) => (
-            <div
+            <Link
               key={`row2-${idx}`}
-              className="w-56 sm:w-64 h-40 rounded-[22px] overflow-hidden bg-white border border-[#E8E4DA] shadow-sm relative group shrink-0"
+              href={item.href}
+              className="w-56 sm:w-64 h-40 rounded-[22px] overflow-hidden bg-white border border-[#E8E4DA] shadow-sm relative group shrink-0 cursor-pointer block"
             >
               <img
                 src={item.img}
@@ -143,7 +138,7 @@ export default function HeroSection() {
                 </div>
                 <h4 className="text-xs font-bold text-white truncate">{item.title}</h4>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
