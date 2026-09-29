@@ -164,6 +164,26 @@ export async function fetchPromptsFromDb(params: FetchPromptsParams = {}): Promi
 
     if (error) {
       console.warn('Supabase prompts query error:', error.message);
+      if (typeof window !== 'undefined') {
+        try {
+          const apiQuery = new URLSearchParams();
+          if (type) apiQuery.set('type', type);
+          if (category) apiQuery.set('category', category);
+          if (model) apiQuery.set('model', model);
+          if (style) apiQuery.set('style', style);
+          if (search) apiQuery.set('search', search);
+          if (sort) apiQuery.set('sort', sort);
+          apiQuery.set('page', page.toString());
+          apiQuery.set('pageSize', limit.toString());
+          const apiRes = await fetch(`/api/prompts?${apiQuery.toString()}`);
+          if (apiRes.ok) {
+            const apiData = await apiRes.json();
+            return apiData;
+          }
+        } catch {
+          // fallback
+        }
+      }
       return { prompts: [], total: 0, page: 1, totalPages: 1 };
     }
 

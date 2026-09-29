@@ -91,7 +91,19 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
       }}
     >
       {/* MEDIA PREVIEW CONTAINER */}
-      <div className={`relative w-full overflow-hidden bg-[#EDEDEA] ${prompt.aspect_ratio === '9:16' ? 'aspect-[9/14]' : prompt.aspect_ratio === '4:5' ? 'aspect-[4/5]' : 'aspect-[16/10]'}`}>
+      <div
+        className={`relative w-full overflow-hidden bg-[#EDEDEA] flex items-center justify-center ${
+          prompt.aspect_ratio === '9:16'
+            ? 'aspect-[9/16]'
+            : prompt.aspect_ratio === '1:1'
+            ? 'aspect-square'
+            : prompt.aspect_ratio === '4:5'
+            ? 'aspect-[4/5]'
+            : prompt.aspect_ratio === '3:4'
+            ? 'aspect-[3/4]'
+            : 'aspect-[16/9]'
+        }`}
+      >
         <img
           src={prompt.preview_url || (prompt.type === 'video' ? parseMediaUrl(prompt.video_url).thumbnailUrl : '') || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop'}
           alt={prompt.title}

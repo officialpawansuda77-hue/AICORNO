@@ -25,24 +25,9 @@ export function createClerkSupabaseClient(clerkToken?: string | null) {
 
 /**
  * Universal client-side Supabase client.
- * In the browser, it retrieves the active Clerk session JWT via window.Clerk.session.getToken().
+ * Uses anon key with full public read access across prompts, categories, models, and skills.
  */
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  accessToken: async () => {
-    if (typeof window !== 'undefined') {
-      try {
-        const clerkSession = (window as any).Clerk?.session;
-        if (clerkSession) {
-          const token = await clerkSession.getToken();
-          return token || null;
-        }
-      } catch (err) {
-        console.warn('[Supabase] Error retrieving Clerk token for accessToken:', err);
-      }
-    }
-    return null;
-  },
-});
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Server-side / Admin Supabase client (using service role key)
 const serviceRoleKey =

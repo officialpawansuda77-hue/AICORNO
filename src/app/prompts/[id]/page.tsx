@@ -218,107 +218,123 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
           <div className="lg:col-span-7 space-y-8">
             
             {/* Main Media Preview Frame */}
-            <div className="relative rounded-[28px] overflow-hidden bg-black border border-[#E8E4DA] shadow-lg group">
-              {prompt.type === 'video' ? (
-                (() => {
-                  const parsedVideo = parseMediaUrl(prompt.video_url || prompt.preview_url);
-                  const hasVideoSource = Boolean(parsedVideo.embedUrl || parsedVideo.isDirectVideo || prompt.video_url);
+            {(() => {
+              const isVertical = prompt.aspect_ratio === '9:16';
+              const mediaAspectClass =
+                prompt.aspect_ratio === '9:16'
+                  ? 'aspect-[9/16]'
+                  : prompt.aspect_ratio === '1:1'
+                  ? 'aspect-square'
+                  : prompt.aspect_ratio === '4:5'
+                  ? 'aspect-[4/5]'
+                  : prompt.aspect_ratio === '3:4'
+                  ? 'aspect-[3/4]'
+                  : 'aspect-[16/9]';
 
-                  if (isPlaying && hasVideoSource) {
-                    if (parsedVideo.isGoogleDrive || parsedVideo.isYouTube) {
+              return (
+                <div className={`relative rounded-[28px] overflow-hidden bg-black border border-[#E8E4DA] shadow-lg group ${isVertical ? 'max-w-[440px] mx-auto' : 'w-full'}`}>
+                  {prompt.type === 'video' ? (
+                    (() => {
+                      const parsedVideo = parseMediaUrl(prompt.video_url || prompt.preview_url);
+                      const hasVideoSource = Boolean(parsedVideo.embedUrl || parsedVideo.isDirectVideo || prompt.video_url);
+
+                      if (isPlaying && hasVideoSource) {
+                        if (parsedVideo.isGoogleDrive || parsedVideo.isYouTube) {
+                          return (
+                            <div className={`relative ${mediaAspectClass} w-full bg-black`}>
+                              <iframe
+                                src={parsedVideo.embedUrl}
+                                className="w-full h-full border-0"
+                                allow="autoplay; encrypted-media; picture-in-picture"
+                                allowFullScreen
+                                title={prompt.title}
+                              />
+                              <button
+                                onClick={() => setIsPlaying(false)}
+                                className="absolute top-4 right-4 z-20 px-3 py-1.5 rounded-full bg-black/80 hover:bg-black text-[#D8F651] text-xs font-bold backdrop-blur-md transition-all flex items-center gap-1.5 border border-white/20 shadow-md"
+                              >
+                                <Pause className="w-3.5 h-3.5 fill-[#D8F651]" />
+                                <span>Stop Video</span>
+                              </button>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className={`relative ${mediaAspectClass} w-full bg-black`}>
+                            <video
+                              src={parsedVideo.directStreamUrl || prompt.video_url}
+                              poster={mediaList[activeMediaIndex] || prompt.preview_url}
+                              controls
+                              autoPlay
+                              playsInline
+                              className="w-full h-full object-contain"
+                            />
+                            <button
+                              onClick={() => setIsPlaying(false)}
+                              className="absolute top-4 right-4 z-20 px-3 py-1.5 rounded-full bg-black/80 hover:bg-black text-[#D8F651] text-xs font-bold backdrop-blur-md transition-all flex items-center gap-1.5 border border-white/20 shadow-md"
+                            >
+                              <Pause className="w-3.5 h-3.5 fill-[#D8F651]" />
+                              <span>Close Video</span>
+                            </button>
+                          </div>
+                        );
+                      }
+
                       return (
-                        <div className="relative aspect-[16/10] bg-black">
-                          <iframe
-                            src={parsedVideo.embedUrl}
-                            className="w-full h-full border-0"
-                            allow="autoplay; encrypted-media; picture-in-picture"
-                            allowFullScreen
-                            title={prompt.title}
+                        <div className={`relative ${mediaAspectClass} w-full bg-black flex items-center justify-center`}>
+                          <img
+                            src={mediaList[activeMediaIndex] || parsedVideo.thumbnailUrl || prompt.preview_url}
+                            alt={prompt.title}
+                            className="w-full h-full object-contain"
                           />
-                          <button
-                            onClick={() => setIsPlaying(false)}
-                            className="absolute top-4 right-4 z-20 px-3 py-1.5 rounded-full bg-black/80 hover:bg-black text-[#D8F651] text-xs font-bold backdrop-blur-md transition-all flex items-center gap-1.5 border border-white/20 shadow-md"
-                          >
-                            <Pause className="w-3.5 h-3.5 fill-[#D8F651]" />
-                            <span>Stop Video</span>
-                          </button>
+
+                          {/* Google Drive Video Badge */}
+                          {parsedVideo.isGoogleDrive && (
+                            <div className="absolute top-4 right-4 z-10 px-3 py-1 rounded-full bg-black/80 text-[#D8F651] text-xs font-bold backdrop-blur-md flex items-center gap-1.5 border border-[#D8F651]/40">
+                              <Play className="w-3 h-3 fill-[#D8F651]" />
+                              <span>Google Drive Video</span>
+                            </div>
+                          )}
+
+                          {/* Play Overlay */}
+                          <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
+                            <button
+                              onClick={() => setIsPlaying(true)}
+                              className="w-16 h-16 rounded-full bg-[#101010]/85 hover:bg-[#101010] text-[#D8F651] flex items-center justify-center backdrop-blur-md transition-transform hover:scale-110 shadow-2xl border border-white/20"
+                              aria-label="Play Video"
+                            >
+                              <Play className="w-7 h-7 fill-[#D8F651] ml-1" />
+                            </button>
+                          </div>
+
+                          {/* Video Specs Tag */}
+                          <div className="absolute bottom-4 left-4 flex items-center gap-2">
+                            <span className="px-3 py-1 rounded-full bg-black/80 text-[#D8F651] text-xs font-mono font-bold backdrop-blur-md">
+                              {prompt.duration || '8s'} &bull; {prompt.aspect_ratio}
+                            </span>
+                            <span className="px-3 py-1 rounded-full bg-black/80 text-white text-xs font-bold backdrop-blur-md">
+                              {prompt.model}
+                            </span>
+                          </div>
                         </div>
                       );
-                    }
-
-                    return (
-                      <div className="relative aspect-[16/10] bg-black">
-                        <video
-                          src={parsedVideo.directStreamUrl || prompt.video_url}
-                          poster={mediaList[activeMediaIndex] || prompt.preview_url}
-                          controls
-                          autoPlay
-                          playsInline
-                          className="w-full h-full object-contain"
-                        />
-                        <button
-                          onClick={() => setIsPlaying(false)}
-                          className="absolute top-4 right-4 z-20 px-3 py-1.5 rounded-full bg-black/80 hover:bg-black text-[#D8F651] text-xs font-bold backdrop-blur-md transition-all flex items-center gap-1.5 border border-white/20 shadow-md"
-                        >
-                          <Pause className="w-3.5 h-3.5 fill-[#D8F651]" />
-                          <span>Close Video</span>
-                        </button>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="relative aspect-[16/10] bg-black flex items-center justify-center">
+                    })()
+                  ) : (
+                    <div className={`relative ${mediaAspectClass} w-full bg-[#EDEDEA] flex items-center justify-center`}>
                       <img
-                        src={mediaList[activeMediaIndex] || parsedVideo.thumbnailUrl || prompt.preview_url}
+                        src={mediaList[activeMediaIndex]}
                         alt={prompt.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
-
-                      {/* Google Drive Video Badge */}
-                      {parsedVideo.isGoogleDrive && (
-                        <div className="absolute top-4 right-4 z-10 px-3 py-1 rounded-full bg-black/80 text-[#D8F651] text-xs font-bold backdrop-blur-md flex items-center gap-1.5 border border-[#D8F651]/40">
-                          <Play className="w-3 h-3 fill-[#D8F651]" />
-                          <span>Google Drive Video</span>
-                        </div>
-                      )}
-
-                      {/* Play Overlay */}
-                      <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
-                        <button
-                          onClick={() => setIsPlaying(true)}
-                          className="w-16 h-16 rounded-full bg-[#101010]/85 hover:bg-[#101010] text-[#D8F651] flex items-center justify-center backdrop-blur-md transition-transform hover:scale-110 shadow-2xl border border-white/20"
-                          aria-label="Play Video"
-                        >
-                          <Play className="w-7 h-7 fill-[#D8F651] ml-1" />
-                        </button>
-                      </div>
-
-                      {/* Video Specs Tag */}
-                      <div className="absolute bottom-4 left-4 flex items-center gap-2">
-                        <span className="px-3 py-1 rounded-full bg-black/80 text-[#D8F651] text-xs font-mono font-bold backdrop-blur-md">
-                          {prompt.duration || '8s'} &bull; {prompt.aspect_ratio}
-                        </span>
-                        <span className="px-3 py-1 rounded-full bg-black/80 text-white text-xs font-bold backdrop-blur-md">
-                          {prompt.model}
-                        </span>
+                      <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-md px-3 py-1 rounded-full text-white text-xs font-bold">
+                        {prompt.aspect_ratio} &bull; {prompt.style}
                       </div>
                     </div>
-                  );
-                })()
-              ) : (
-                <div className="relative aspect-[4/3] bg-[#EDEDEA]">
-                  <img
-                    src={mediaList[activeMediaIndex]}
-                    alt={prompt.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-md px-3 py-1 rounded-full text-white text-xs font-bold">
-                    {prompt.aspect_ratio} &bull; {prompt.style}
-                  </div>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })()}
 
             {/* Thumbnail Strip */}
             {mediaList.length > 1 && (

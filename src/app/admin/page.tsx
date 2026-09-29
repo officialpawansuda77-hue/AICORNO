@@ -40,9 +40,9 @@ import {
   Check,
   FolderPlus,
   Loader2,
-  Upload
+  Upload,
 } from 'lucide-react';
-import { Prompt, Category, AIModel } from '@/types';
+import { Prompt, Category, AIModel, UserSubmission } from '@/types';
 import { parseMediaUrl } from '@/lib/mediaUtils';
 import { AI_MODELS } from '@/data/categoriesModels';
 
@@ -55,6 +55,7 @@ export default function AdminPanelPage() {
     addPrompt,
     updatePrompt,
     deletePrompt,
+    addSkill,
     deleteSkill,
     currentUser,
     isLoadingAuth,
@@ -118,13 +119,13 @@ export default function AdminPanelPage() {
   const [newModelName, setNewModelName] = useState('');
   const [newModelDesc, setNewModelDesc] = useState('');
 
-  // Form states for Prompts
+  // Form states for Prompts / Skills
   const [formTitle, setFormTitle] = useState('');
-  const [formType, setFormType] = useState<'image' | 'video'>('image');
+  const [formType, setFormType] = useState<'image' | 'video' | 'skill'>('image');
   const [formPrompt, setFormPrompt] = useState('');
   const [formDesc, setFormDesc] = useState('');
   const [formCategory, setFormCategory] = useState('Automotive');
-  const [formModel, setFormModel] = useState('Flux.1 Pro');
+  const [formModel, setFormModel] = useState('ChatGPT');
   const [formStyle, setFormStyle] = useState('Cinematic');
   const [formRatio, setFormRatio] = useState<'16:9' | '9:16' | '1:1' | '4:5' | '3:4'>('16:9');
   const [formPreview, setFormPreview] = useState('');
@@ -138,7 +139,7 @@ export default function AdminPanelPage() {
   const [dbPrompts, setDbPrompts] = useState<Prompt[]>(storePrompts);
   const [dbCategories, setDbCategories] = useState<Category[]>([]);
   const [dbModels, setDbModels] = useState<AIModel[]>([]);
-  const [dbSubmissions, setDbSubmissions] = useState(storeSubmissions);
+  const [dbSubmissions, setDbSubmissions] = useState<UserSubmission[]>(storeSubmissions);
 
   // Load from Supabase on mount
   const refreshAdminData = async () => {
@@ -153,7 +154,23 @@ export default function AdminPanelPage() {
       if (promptsRes.prompts.length > 0) setDbPrompts(promptsRes.prompts);
       if (cats.length > 0) setDbCategories(cats);
       if (mods.length > 0) setDbModels(mods);
-      if (subs.length > 0) setDbSubmissions(subs);
+      
+      // Merge live submissions with local submissions
+      let localSubs: UserSubmission[] = [];
+      if (typeof window !== 'undefined') {
+        try {
+          localSubs = JSON.parse(localStorage.getItem('aicorn_local_submissions') || '[]');
+        } catch {
+          // ignore
+        }
+      }
+      const allSubs = [...localSubs, ...(subs || []), ...storeSubmissions];
+      const seenSubs = new Set<string>();
+      setDbSubmissions(allSubs.filter((s) => {
+        if (seenSubs.has(s.id)) return false;
+        seenSubs.add(s.id);
+        return true;
+      }));
     } catch (e) {
       console.warn('Admin refresh fallback:', e);
     }
@@ -164,11 +181,13 @@ export default function AdminPanelPage() {
   }, []);
 
   // Metrics
-  const totalImagePrompts = dbPrompts.filter((p) => p.type === 'image').length;
-  const totalVideoPrompts = dbPrompts.filter((p) => p.type === 'video').length;
-  const totalCopies = dbPrompts.reduce((acc, p) => acc + (p.copies || 0), 0);
-  const totalViews = dbPrompts.reduce((acc, p) => acc + (p.views || 0), 0);
-  const pendingSubmissions = dbSubmissions.filter((s) => s.status === 'pending');
+  const activePrompts = dbPrompts.length > 0 ? dbPrompts : storePrompts;
+  const totalImagePrompts = activePrompts.filter((p) => p.type === 'image').length;
+  const totalVideoPrompts = activePrompts.filter((p) => p.type === 'video').length;
+  const totalCopies = activePrompts.reduce((acc, p) => acc + (p.copies || 0), 0);
+  const totalViews = activePrompts.reduce((acc, p) => acc + (p.views || 0), 0);
+  const activeSubmissions = dbSubmissions.length > 0 ? dbSubmissions : storeSubmissions;
+  const pendingSubmissions = activeSubmissions.filter((s) => s.status === 'pending');
 
   const openCreateModal = () => {
     setEditingPrompt(null);
@@ -214,6 +233,27 @@ export default function AdminPanelPage() {
     const parsedVid = formType === 'video' ? parseMediaUrl(formVideoUrl) : null;
     const resolvedVideoUrl = formType === 'video' ? (parsedVid?.embedUrl || formVideoUrl || undefined) : undefined;
     const resolvedPreview = formPreview || (parsedVid?.thumbnailUrl || undefined);
+
+    if (formType === 'skill') {
+      addSkill({
+        title: formTitle,
+        category: formCategory as any,
+        output_type: formStyle as any,
+        description: formDesc || 'Autonomous AI Agent Skill',
+        compatible_agents: [formModel],
+        preview_image: resolvedPreview || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1000&auto=format&fit=crop',
+        install_prompt: formPrompt,
+        capabilities: [formDesc || 'Autonomous execution pack'],
+        instructions: [formPrompt],
+        tags: ['agent-skill', formCategory.toLowerCase()],
+        rating: 5.0,
+        is_pro: formIsPro,
+        is_featured: formIsFeatured,
+      });
+      setIsPromptModalOpen(false);
+      refreshAdminData();
+      return;
+    }
 
     if (editingPrompt) {
       await updatePrompt(editingPrompt.id, {
@@ -430,11 +470,11 @@ export default function AdminPanelPage() {
         <div className="flex items-center gap-2 pb-6 border-b border-[#E8E4DA] mb-8 overflow-x-auto">
           {[
             { id: 'dashboard', label: 'Metrics', icon: LayoutDashboard },
-            { id: 'prompts', label: `Prompts (${dbPrompts.length})`, icon: Sparkles },
+            { id: 'prompts', label: `Prompts (${activePrompts.length})`, icon: Sparkles },
             { id: 'skills', label: `Skills (${skills.length})`, icon: Bot },
-            { id: 'submissions', label: `Submissions (${pendingSubmissions.length})`, icon: CheckCircle },
-            { id: 'categories', label: `Categories (${dbCategories.length})`, icon: Layers },
-            { id: 'models', label: `Models (${dbModels.length})`, icon: Video },
+            { id: 'submissions', label: `Submissions (${activeSubmissions.length})`, icon: CheckCircle },
+            { id: 'categories', label: `Categories (${dbCategories.length || 16})`, icon: Layers },
+            { id: 'models', label: `Models (${dbModels.length || 17})`, icon: Video },
             { id: 'analytics', label: 'Analytics', icon: TrendingUp },
             { id: 'settings', label: 'Settings', icon: Settings },
           ].map((tab) => {
@@ -462,7 +502,7 @@ export default function AdminPanelPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
               <div className="aicorn-card p-6 bg-white">
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8A867D]">Total Prompts</span>
-                <div className="text-3xl font-black text-[#101010] mt-1">{dbPrompts.length}</div>
+                <div className="text-3xl font-black text-[#101010] mt-1">{activePrompts.length}</div>
                 <div className="text-xs text-[#8A867D] mt-1">
                   {totalImagePrompts} images &bull; {totalVideoPrompts} videos
                 </div>
@@ -470,8 +510,10 @@ export default function AdminPanelPage() {
 
               <div className="aicorn-card p-6 bg-white">
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8A867D]">Submissions</span>
-                <div className="text-3xl font-black text-[#101010] mt-1">{pendingSubmissions.length}</div>
-                <div className="text-xs text-[#B45309] font-bold mt-1">Awaiting Review</div>
+                <div className="text-3xl font-black text-[#101010] mt-1">{activeSubmissions.length}</div>
+                <div className="text-xs text-[#B45309] font-bold mt-1">
+                  {pendingSubmissions.length > 0 ? `${pendingSubmissions.length} Awaiting Review` : 'All Reviewed'}
+                </div>
               </div>
 
               <div className="aicorn-card p-6 bg-white">
@@ -819,23 +861,33 @@ export default function AdminPanelPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-[#101010] mb-1">Type</label>
+                    <label className="block text-xs font-bold text-[#101010] mb-1">Asset Type</label>
                     <select
                       value={formType}
                       onChange={(e) => {
-                        const newType = e.target.value as 'image' | 'video';
+                        const newType = e.target.value as 'image' | 'video' | 'skill';
                         setFormType(newType);
-                        const available = (dbModels.length > 0 ? dbModels : AI_MODELS).filter((m) =>
-                          newType === 'video' ? m.type === 'video' : m.type !== 'video'
-                        );
-                        if (!available.some((m) => m.name === formModel)) {
-                          setFormModel(newType === 'video' ? 'Kling 1.5' : 'ChatGPT');
+                        if (newType === 'video') {
+                          setFormModel('Kling 1.5');
+                          setFormCategory('Cinematic & Film');
+                          setFormStyle('Cinematic');
+                          setFormRatio('9:16');
+                        } else if (newType === 'skill') {
+                          setFormModel('Claude 3.5 Sonnet');
+                          setFormCategory('Developer');
+                          setFormStyle('CLI Workflow');
+                        } else {
+                          setFormModel('ChatGPT');
+                          setFormCategory('Automotive');
+                          setFormStyle('Cinematic');
+                          setFormRatio('16:9');
                         }
                       }}
                       className="w-full px-3 py-2 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs font-bold"
                     >
-                      <option value="image">Image</option>
-                      <option value="video">Video</option>
+                      <option value="image">Image Prompt</option>
+                      <option value="video">Video Prompt</option>
+                      <option value="skill">Agent Skill</option>
                     </select>
                   </div>
 
@@ -846,20 +898,35 @@ export default function AdminPanelPage() {
                       onChange={(e) => setFormCategory(e.target.value)}
                       className="w-full px-3 py-2 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs font-bold"
                     >
-                      {dbCategories.map((c) => (
-                        <option key={c.slug} value={c.name}>{c.name}</option>
-                      ))}
+                      {formType === 'skill'
+                        ? ['Developer', 'Workflow Automation', 'Productivity', 'Writing & SEO', 'Research & Intelligence', 'Design & UI/UX'].map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))
+                        : formType === 'video'
+                        ? ['Cinematic & Film', 'Commercial & Ads', 'UGC & TikTok', '3D & Motion', 'Automotive', 'Travel & Nature', 'Anime & Illustration'].map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))
+                        : (dbCategories.length > 0 ? dbCategories.map(c => c.name) : ['Automotive', 'Product Ads', 'Fashion & Editorial', 'Food & Beverage', 'Architecture', 'Anime & Illustration', '3D & Motion', 'Cinematic & Film']).map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#101010] mb-1">Prompt Parameters</label>
+                  <label className="block text-xs font-bold text-[#101010] mb-1">
+                    {formType === 'skill' ? 'Skill Instructions / System Prompt' : 'Prompt Parameters'}
+                  </label>
                   <textarea
                     rows={4}
                     required
                     value={formPrompt}
                     onChange={(e) => setFormPrompt(e.target.value)}
+                    placeholder={
+                      formType === 'skill'
+                        ? 'You are an autonomous agent specialized in...'
+                        : 'Specify subject, lighting, camera angle, and rendering style...'
+                    }
                     className="w-full p-3 rounded-2xl bg-[#101010] text-[#D8F651] font-mono text-xs focus:outline-none"
                   />
                 </div>
@@ -870,51 +937,74 @@ export default function AdminPanelPage() {
                     type="text"
                     value={formDesc}
                     onChange={(e) => setFormDesc(e.target.value)}
+                    placeholder="Short summary of this prompt or skill capability..."
                     className="w-full px-4 py-2 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs"
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className={`grid ${formType === 'skill' ? 'grid-cols-2' : 'grid-cols-3'} gap-3`}>
                   <div>
-                    <label className="block text-xs font-bold text-[#101010] mb-1">Model</label>
+                    <label className="block text-xs font-bold text-[#101010] mb-1">Model / Engine</label>
                     <select
                       value={formModel}
                       onChange={(e) => setFormModel(e.target.value)}
                       className="w-full px-3 py-2 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs font-bold"
                     >
-                      {(dbModels.length > 0 ? dbModels : AI_MODELS)
-                        .filter((m) => (formType === 'video' ? m.type === 'video' : m.type !== 'video'))
-                        .map((m) => (
-                          <option key={m.id} value={m.name}>{m.name}</option>
-                        ))}
+                      {formType === 'skill'
+                        ? ['Claude 3.5 Sonnet', 'GPT-4o', 'Claude Code', 'Cursor AI', 'Gemini 1.5 Pro', 'DeepSeek R1'].map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                          ))
+                        : formType === 'video'
+                        ? ['Kling 1.5', 'Veo 3', 'Runway Gen-3 Alpha', 'OpenAI Sora', 'Seedance', 'Luma Dream Machine', 'Hailuo MiniMax', 'Pika 2.0'].map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                          ))
+                        : ['ChatGPT', 'Midjourney v6.1', 'Flux.1 Pro', 'Stable Diffusion XL', 'Ideogram 2.0', 'Google Imagen 3', 'Nano Banana'].map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-[#101010] mb-1">Style</label>
+                    <label className="block text-xs font-bold text-[#101010] mb-1">
+                      {formType === 'skill' ? 'Output Format' : 'Style'}
+                    </label>
                     <select
                       value={formStyle}
                       onChange={(e) => setFormStyle(e.target.value)}
                       className="w-full px-3 py-2 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs font-bold"
                     >
-                      {['Cinematic', 'Photorealistic', 'Editorial', 'Minimal', 'Luxury', '3D', 'Anime', 'Commercial'].map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
+                      {formType === 'skill'
+                        ? ['CLI Workflow', 'System Prompt', 'Python Script', 'Agent Config', 'Multi-step Chain'].map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                          ))
+                        : formType === 'video'
+                        ? ['Cinematic', 'Commercial', 'UGC / TikTok', 'FPV Drone', 'Slow Motion', 'Hyperlapse'].map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                          ))
+                        : ['Cinematic', 'Photorealistic', 'Editorial', 'Minimal', 'Luxury', '3D', 'Anime', 'Commercial'].map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-[#101010] mb-1">Aspect Ratio</label>
-                    <select
-                      value={formRatio}
-                      onChange={(e) => setFormRatio(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs font-bold"
-                    >
-                      {['16:9', '9:16', '1:1', '4:5', '3:4'].map((r) => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {formType !== 'skill' && (
+                    <div>
+                      <label className="block text-xs font-bold text-[#101010] mb-1">Aspect Ratio</label>
+                      <select
+                        value={formRatio}
+                        onChange={(e) => setFormRatio(e.target.value as any)}
+                        className="w-full px-3 py-2 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs font-bold"
+                      >
+                        {formType === 'video'
+                          ? ['9:16', '16:9'].map((r) => (
+                              <option key={r} value={r}>{r}</option>
+                            ))
+                          : ['16:9', '9:16', '1:1', '4:5', '3:4'].map((r) => (
+                              <option key={r} value={r}>{r}</option>
+                            ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 {formType === 'video' && (
@@ -944,7 +1034,7 @@ export default function AdminPanelPage() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-bold text-[#101010]">
-                      {formType === 'video' ? 'Cover / Poster Thumbnail URL' : 'Supabase Storage Media URL'}
+                      {formType === 'skill' ? 'Skill Cover / Icon Image URL' : formType === 'video' ? 'Cover / Poster Thumbnail URL' : 'Supabase Storage Media URL'}
                     </label>
                     <label className="text-[11px] font-black text-[#101010] bg-[#D8F651] hover:bg-[#C5E53E] px-2.5 py-0.5 rounded-full cursor-pointer transition-colors flex items-center gap-1 shadow-2xs">
                       {isUploadingMedia ? (

@@ -62,9 +62,9 @@ export interface Skill {
   preview_image: string;
   capabilities: string[];
   instructions: string[];
-  config: SkillConfigParam[];
-  example_usage: string;
-  faq: SkillFaq[];
+  config?: SkillConfigParam[];
+  example_usage?: string;
+  faq?: SkillFaq[];
   tags: string[];
   installs: number;
   rating: number;

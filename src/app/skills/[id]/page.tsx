@@ -310,31 +310,35 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
 
           {/* Configuration & Example */}
           <div className="space-y-6">
-            <div className="bg-white rounded-[28px] border border-[#E8E4DA] p-6 shadow-sm">
-              <h4 className="text-xs font-black uppercase tracking-wider text-[#8A867D] mb-4 flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-[#101010]" />
-                <span>Configuration Variables</span>
-              </h4>
-              <div className="space-y-3">
-                {skill.config.map((c) => (
-                  <div key={c.name} className="p-3 rounded-xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs">
-                    <div className="font-mono font-bold text-[#101010]">{c.name}</div>
-                    <div className="text-[11px] text-[#8A867D] mt-0.5">{c.description}</div>
-                    <div className="mt-1 font-mono text-[10px] text-[#FF4B26]">default: {c.default}</div>
-                  </div>
-                ))}
+            {skill.config && skill.config.length > 0 && (
+              <div className="bg-white rounded-[28px] border border-[#E8E4DA] p-6 shadow-sm">
+                <h4 className="text-xs font-black uppercase tracking-wider text-[#8A867D] mb-4 flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-[#101010]" />
+                  <span>Configuration Variables</span>
+                </h4>
+                <div className="space-y-3">
+                  {skill.config.map((c) => (
+                    <div key={c.name} className="p-3 rounded-xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs">
+                      <div className="font-mono font-bold text-[#101010]">{c.name}</div>
+                      <div className="text-[11px] text-[#8A867D] mt-0.5">{c.description}</div>
+                      <div className="mt-1 font-mono text-[10px] text-[#FF4B26]">default: {c.default}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="bg-white rounded-[28px] border border-[#E8E4DA] p-6 shadow-sm">
-              <h4 className="text-xs font-black uppercase tracking-wider text-[#8A867D] mb-2 flex items-center gap-2">
-                <Code2 className="w-4 h-4 text-[#101010]" />
-                <span>Example Terminal Trigger</span>
-              </h4>
-              <pre className="p-3 rounded-xl bg-[#101010] text-[#D8F651] font-mono text-xs overflow-x-auto">
-                <code>{skill.example_usage}</code>
-              </pre>
-            </div>
+            {skill.example_usage && (
+              <div className="bg-white rounded-[28px] border border-[#E8E4DA] p-6 shadow-sm">
+                <h4 className="text-xs font-black uppercase tracking-wider text-[#8A867D] mb-2 flex items-center gap-2">
+                  <Code2 className="w-4 h-4 text-[#101010]" />
+                  <span>Example Terminal Trigger</span>
+                </h4>
+                <pre className="p-3 rounded-xl bg-[#101010] text-[#D8F651] font-mono text-xs overflow-x-auto">
+                  <code>{skill.example_usage}</code>
+                </pre>
+              </div>
+            )}
           </div>
 
         </div>

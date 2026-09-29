@@ -142,6 +142,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }
           }
 
+          // Load skills (SKILLS_DATA + local user skills)
+          let localSkills: Skill[] = [];
+          if (typeof window !== 'undefined') {
+            try {
+              localSkills = JSON.parse(localStorage.getItem('aicorn_local_skills') || '[]');
+            } catch {
+              // ignore
+            }
+          }
+          const allSkills = [...localSkills, ...SKILLS_DATA];
+          const seenSkills = new Set<string>();
+          setSkills(allSkills.filter((s) => {
+            if (seenSkills.has(s.id)) return false;
+            seenSkills.add(s.id);
+            return true;
+          }));
+
+          // Load submissions (database + local submissions)
+          let localSubs: UserSubmission[] = [];
+          if (typeof window !== 'undefined') {
+            try {
+              localSubs = JSON.parse(localStorage.getItem('aicorn_local_submissions') || '[]');
+            } catch {
+              // ignore
+            }
+          }
+          const allSubs = [...localSubs, ...(subs || [])];
+          const seenSubs = new Set<string>();
+          setSubmissions(allSubs.filter((s) => {
+            if (seenSubs.has(s.id)) return false;
+            seenSubs.add(s.id);
+            return true;
+          }));
+
           setPrompts(loadedPrompts);
           setCategories((cats && cats.length > 0 ? cats : DEFAULT_CATEGORIES).map((category) => ({
             ...category,
@@ -150,9 +184,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             ).length,
           })));
           if (mods && mods.length > 0) setModels(mods);
-          if (subs && subs.length > 0) {
-            setSubmissions(subs);
-          }
         }
       } catch (e) {
         console.warn('Initial Supabase sync fallback:', e);
@@ -372,7 +403,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       installs: 0,
     };
     setSkills((prev) => [newSkill, ...prev]);
-    addToast({ title: 'Skill Added', message: `"${data.title}" added to catalog.`, type: 'success' });
+    if (typeof window !== 'undefined') {
+      try {
+        const existing = JSON.parse(localStorage.getItem('aicorn_local_skills') || '[]');
+        localStorage.setItem('aicorn_local_skills', JSON.stringify([newSkill, ...existing].slice(0, 50)));
+      } catch {
+        // ignore
+      }
+    }
+    // Also register in submissions for Admin review and counting
+    const newSub: UserSubmission = {
+      title: data.title,
+      type: 'skill',
+      description: data.description,
+      prompt: data.install_prompt || data.instructions?.join('\n') || '',
+      category: data.category,
+      model: data.compatible_agents?.[0] || 'Claude Code',
+      style: data.output_type || 'Workflow',
+      aspect_ratio: '16:9',
+      preview_url: data.preview_image,
+      tags: data.tags || ['skill', 'ai'],
+      submitted_by: currentUser?.email || 'creator@aicorn.design',
+      id: `sub-${Date.now()}`,
+      status: 'pending',
+      created_at: new Date().toISOString().split('T')[0],
+    };
+    setSubmissions((prev) => [newSub, ...prev]);
+    if (typeof window !== 'undefined') {
+      try {
+        const existingSubs = JSON.parse(localStorage.getItem('aicorn_local_submissions') || '[]');
+        localStorage.setItem('aicorn_local_submissions', JSON.stringify([newSub, ...existingSubs].slice(0, 50)));
+      } catch {
+        // ignore
+      }
+    }
+    addToast({ title: 'Skill Added!', message: `"${data.title}" added to catalog.`, type: 'success' });
   };
 
   const updateSkill = (id: string, updates: Partial<Skill>) => {
@@ -425,6 +490,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Submissions (Supabase + Local)
   const addSubmission = async (data: Omit<UserSubmission, 'id' | 'created_at' | 'status'>): Promise<Prompt> => {
     submitPromptToDb(data, currentUser?.id).catch(() => {});
+
+    const newSub: UserSubmission = {
+      ...data,
+      id: `sub-${Date.now()}`,
+      status: 'pending',
+      created_at: new Date().toISOString().split('T')[0],
+    };
+    setSubmissions((prev) => [newSub, ...prev]);
+    if (typeof window !== 'undefined') {
+      try {
+        const existing = JSON.parse(localStorage.getItem('aicorn_local_submissions') || '[]');
+        localStorage.setItem('aicorn_local_submissions', JSON.stringify([newSub, ...existing].slice(0, 50)));
+      } catch {
+        // ignore
+      }
+    }
 
     // Automatically publish to live gallery so user sees it right away
     const livePrompt = await addPrompt({

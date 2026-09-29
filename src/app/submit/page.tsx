@@ -24,7 +24,7 @@ import {
 
 export default function SubmitPromptPage() {
   const router = useRouter();
-  const { addPrompt, addSubmission, currentUser, setAuthModalOpen, addToast } = useAppStore();
+  const { addPrompt, addSkill, addSubmission, currentUser, setAuthModalOpen, addToast } = useAppStore();
 
   const [type, setType] = useState<'image' | 'video' | 'skill'>('image');
   const [title, setTitle] = useState('');
@@ -123,10 +123,30 @@ export default function SubmitPromptPage() {
         }
       }
 
-      // 1. Immediately create and publish into live app prompts
+      // 1. Immediately create and publish into live app prompts or skills
+      if (type === 'skill') {
+        addSkill({
+          title,
+          category: category as any,
+          output_type: (style || 'Workflow') as any,
+          description: description || 'Autonomous AI Agent Skill',
+          compatible_agents: [model],
+          preview_image: resolvedPreviewUrl || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1000&auto=format&fit=crop',
+          install_prompt: prompt,
+          capabilities: [description || 'Agent execution pack'],
+          instructions: [prompt],
+          tags: tags.length > 0 ? tags : ['skill', 'ai', category.toLowerCase()],
+          rating: 5.0,
+          is_pro: false,
+          is_featured: false,
+        });
+        setSubmittedSuccess(true);
+        return;
+      }
+
       const createdPrompt = await addPrompt({
         title,
-        type: (type === 'skill' ? 'image' : type) as 'image' | 'video',
+        type: type as 'image' | 'video',
         description,
         prompt,
         category,
@@ -369,9 +389,13 @@ export default function SubmitPromptPage() {
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs font-bold text-[#101010] focus:outline-none"
               >
-                {CATEGORIES.map((c) => (
-                  <option key={c.slug} value={c.name}>{c.name}</option>
-                ))}
+                {type === 'skill'
+                  ? ['Developer', 'Workflow Automation', 'Productivity', 'Writing & SEO', 'Research & Intelligence', 'Design & UI/UX'].map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))
+                  : CATEGORIES.map((c) => (
+                      <option key={c.slug} value={c.name}>{c.name}</option>
+                    ))}
               </select>
             </div>
 
