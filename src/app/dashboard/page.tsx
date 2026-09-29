@@ -88,16 +88,29 @@ export default function UserDashboardPage() {
               className="w-18 h-18 rounded-2xl object-cover border-2 border-[#101010]"
             />
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-black text-[#101010]">{currentUser.name}</h1>
-                <span className="px-2.5 py-0.5 rounded-full bg-[#D8F651] text-[#101010] text-[10px] font-black uppercase tracking-wider">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#101010] text-white text-[10px] font-black uppercase tracking-wider">
                   {currentUser.role}
                 </span>
-                {currentUser.membership !== 'free' && (
-                  <span className="px-2 py-0.5 rounded-full bg-[#FF4B26] text-white text-[10px] font-black uppercase">
-                    {currentUser.membership.toUpperCase()} MEMBER
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1 ${
+                    currentUser.membership === 'pro' || currentUser.is_pro
+                      ? 'bg-[#D8F651] text-[#101010]'
+                      : currentUser.membership === 'starter'
+                      ? 'bg-[#101010] text-[#D8F651]'
+                      : 'bg-[#F7F4EE] text-[#8A867D] border border-[#E8E4DA]'
+                  }`}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>
+                    {currentUser.membership === 'pro' || currentUser.is_pro
+                      ? 'Pro Unlimited ($9.99/mo)'
+                      : currentUser.membership === 'starter'
+                      ? 'Starter Creator ($4.49/mo)'
+                      : 'Free Explorer'}
                   </span>
-                )}
+                </span>
               </div>
               <p className="text-xs text-[#8A867D] mt-0.5">
                 {currentUser.handle} &bull; {currentUser.email} &bull; Joined {currentUser.joined_date}

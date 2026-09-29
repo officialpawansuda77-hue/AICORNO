@@ -374,7 +374,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (isSignedIn && user) {
-      syncClerkUserToSupabase(user);
+      // 1. Immediately set optimistic profile so Header & UI reflect login in 0ms!
+      const email = user.primaryEmailAddress?.emailAddress || '';
+      const isOwnerAdmin = isEmailAdmin(email);
+      const role: 'admin' | 'user' = isOwnerAdmin ? 'admin' : 'user';
+      const metaMembership = (user.publicMetadata?.membership as 'free' | 'starter' | 'pro') || 'free';
+      const metaIsPro = role === 'admin' || metaMembership === 'pro' || Boolean(user.publicMetadata?.is_pro);
+
+      setCurrentUser((prev) => prev?.id === user.id ? prev : ({
+        id: user.id,
+        name: user.fullName || user.firstName || email.split('@')[0] || 'Creator',
+        handle: user.username ? `@${user.username}` : `@${email.split('@')[0] || 'creator'}`,
+        email,
+        avatar: user.imageUrl || `https://avatar.vercel.sh/${email || user.id}.png`,
+        role,
+        is_pro: metaIsPro,
+        membership: metaMembership,
+        has_billing_account: metaMembership !== 'free',
+        joined_date: user.createdAt
+          ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+          : '2026',
+      }));
+      setIsLoadingAuth(false);
+
+      // 2. Perform background sync to Supabase and membership check
+      void syncClerkUserToSupabase(user);
     } else {
       setCurrentUser(null);
       // Keep local favorites intact for guests/refresh

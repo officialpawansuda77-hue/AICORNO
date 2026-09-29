@@ -17,7 +17,8 @@ import {
   Image as ImageIcon,
   Video,
   Bot,
-  ArrowRight
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { isUserAdmin } from '@/lib/authUtils';
@@ -350,10 +351,25 @@ export default function Header() {
               <div className="relative hidden sm:block" ref={userMenuRef}>
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center gap-2 p-1 pl-2 bg-white border border-[#E8E4DA] hover:border-[#101010] rounded-full transition-all"
+                  className="flex items-center gap-2 p-1 pl-2.5 bg-white border border-[#E8E4DA] hover:border-[#101010] rounded-full transition-all shadow-2xs"
                 >
                   <span className="text-xs font-bold text-[#1A1A1A] hidden md:inline">
                     {currentUser.name}
+                  </span>
+                  <span
+                    className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                      currentUser.membership === 'pro' || currentUser.is_pro
+                        ? 'bg-[#D8F651] text-[#101010]'
+                        : currentUser.membership === 'starter'
+                        ? 'bg-[#101010] text-white'
+                        : 'bg-[#F7F4EE] text-[#8A867D] border border-[#E8E4DA]'
+                    }`}
+                  >
+                    {currentUser.membership === 'pro' || currentUser.is_pro
+                      ? 'Pro'
+                      : currentUser.membership === 'starter'
+                      ? 'Starter'
+                      : 'Free'}
                   </span>
                   <img
                     src={currentUser.avatar}
@@ -363,17 +379,32 @@ export default function Header() {
                 </button>
 
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl border border-[#E8E4DA] shadow-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl border border-[#E8E4DA] shadow-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                     <div className="px-3 py-2 border-b border-[#E8E4DA]/60 mb-1">
                       <p className="text-xs font-extrabold text-[#1A1A1A]">{currentUser.name}</p>
                       <p className="text-[11px] text-[#8A867D] truncate">{currentUser.email}</p>
-                      <div className="mt-1 flex items-center gap-1.5">
-                        <span className="text-[9px] uppercase tracking-wider font-black px-1.5 py-0.5 rounded bg-[#D8F651] text-[#101010]">
+                      <div className="mt-2 flex items-center justify-between gap-1.5">
+                        <span className="text-[9px] uppercase tracking-wider font-black px-1.5 py-0.5 rounded bg-[#F7F4EE] text-[#101010] border border-[#E8E4DA]">
                           {currentUser.role}
                         </span>
-                        {currentUser.is_pro && (
-                          <span className="text-[9px] font-bold text-[#FF4B26]">PRO MEMBER</span>
-                        )}
+                        <span
+                          className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                            currentUser.membership === 'pro' || currentUser.is_pro
+                              ? 'bg-[#D8F651] text-[#101010]'
+                              : currentUser.membership === 'starter'
+                              ? 'bg-[#101010] text-white'
+                              : 'bg-[#F7F4EE] text-[#8A867D] border border-[#E8E4DA]'
+                          }`}
+                        >
+                          <Sparkles className="w-2.5 h-2.5" />
+                          <span>
+                            {currentUser.membership === 'pro' || currentUser.is_pro
+                              ? 'Pro Unlimited'
+                              : currentUser.membership === 'starter'
+                              ? 'Starter Creator'
+                              : 'Free Explorer'}
+                          </span>
+                        </span>
                       </div>
                     </div>
 
