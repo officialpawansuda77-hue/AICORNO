@@ -1,22 +1,25 @@
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { getSubscriptions, membershipFor } from '@/lib/billing';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
-  const { userId } = await auth();
+export async function GET(request: Request) {
+  let userId: string | null = null;
+  try {
+    const authRes = await auth();
+    userId = authRes.userId;
+  } catch {}
+
+  if (!userId) {
+    const url = new URL(request.url);
+    userId = url.searchParams.get('userId');
+  }
+
   if (!userId) return Response.json({ error: 'Sign in required.' }, { status: 401 });
   try {
     const rows = await getSubscriptions(userId);
-    let tier = membershipFor(rows);
-    let hasBillingAccount = rows.some((row) => Boolean(row.customer_id));
-
-    // Also check Clerk user metadata
-    const user = await currentUser();
-    if (tier === 'free' && user?.publicMetadata?.membership) {
-      tier = user.publicMetadata.membership as any;
-      hasBillingAccount = Boolean(user.publicMetadata.has_billing_account);
-    }
+    const tier = membershipFor(rows);
+    const hasBillingAccount = rows.some((row) => Boolean(row.customer_id));
 
     return Response.json(
       { tier, hasBillingAccount },

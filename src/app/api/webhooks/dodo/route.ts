@@ -1,4 +1,4 @@
-import { dodo, productIds } from '@/lib/billing';
+import { dodo, getSubscriptions, membershipFor } from '@/lib/billing';
 import { supabaseAdmin } from '@/lib/supabase';
 import { clerkClient } from '@clerk/nextjs/server';
 
@@ -34,30 +34,46 @@ export async function POST(request: Request) {
   const metadata = (data.metadata || {}) as Record<string, any>;
   const subscriptionId = data.subscription_id || data.payment_id || '';
   const customer = (data.customer || {}) as Record<string, any>;
-  const eventId = request.headers.get('webhook-id') || `evt_${Date.now()}`;
+  const eventId = request.headers.get('webhook-id');
+
+  if (!eventId) {
+    return new Response('Missing webhook-id', { status: 400 });
+  }
 
   let userId = metadata?.clerk_user_id || metadata?.userId;
 
-  // Determine plan and access
-  const isProProduct = data.product_id === productIds().pro || data.product_id === process.env.NEXT_PUBLIC_DODO_PRO_PRODUCT_ID;
-  const tier: 'pro' | 'starter' = isProProduct ? 'pro' : 'starter';
-
-  const isAccessActive =
-    ['active', 'renewed', 'succeeded'].includes(String(data.status || '')) ||
-    eventType === 'payment.succeeded' ||
-    eventType === 'subscription.active' ||
-    eventType === 'subscription.renewed';
-
   try {
+    // 1. Apply event via RPC (validates and records atomically)
+    const { error: rpcError } = await supabaseAdmin.rpc('apply_dodo_subscription_event', {
+      p_event_id: eventId,
+      p_subscription_id: subscriptionId,
+      p_user_id: userId || 'unknown',
+      p_customer_id: customer?.customer_id || 'unknown',
+      p_product_id: data.product_id || '',
+      p_status: data.status || 'active',
+      p_next_billing_date: typeof data.next_billing_date === 'string' ? data.next_billing_date : null,
+      p_cancel_at_next_billing_date: data.cancel_at_next_billing_date === true,
+      p_event_at: event.timestamp || new Date().toISOString(),
+    });
+
+    if (rpcError) {
+      console.error('Dodo webhook RPC error:', rpcError);
+      return new Response('Webhook persistence failed', { status: 500 });
+    }
+
+    // 2. Derive membership from table and update Clerk metadata
     if (userId) {
-      // 1. Update Clerk user publicMetadata immediately
       try {
+        const rows = await getSubscriptions(userId);
+        const tier = membershipFor(rows);
+        const hasBillingAccount = rows.some((row) => Boolean(row.customer_id));
+
         const clerk = await clerkClient();
         await clerk.users.updateUserMetadata(userId, {
           publicMetadata: {
-            membership: isAccessActive ? tier : 'free',
-            is_pro: isAccessActive && tier === 'pro',
-            has_billing_account: true,
+            membership: tier,
+            is_pro: tier === 'pro',
+            has_billing_account: hasBillingAccount,
             dodo_customer_id: customer?.customer_id || null,
             dodo_subscription_id: subscriptionId || null,
           },
@@ -67,26 +83,9 @@ export async function POST(request: Request) {
       }
     }
 
-    // 2. Also try recording in dodo_subscriptions table if RPC exists in Supabase
-    try {
-      await supabaseAdmin.rpc('apply_dodo_subscription_event', {
-        p_event_id: eventId,
-        p_subscription_id: subscriptionId,
-        p_user_id: userId || 'unknown',
-        p_customer_id: customer?.customer_id || 'unknown',
-        p_product_id: data.product_id || '',
-        p_status: data.status || 'active',
-        p_next_billing_date: typeof data.next_billing_date === 'string' ? data.next_billing_date : null,
-        p_cancel_at_next_billing_date: data.cancel_at_next_billing_date === true,
-        p_event_at: event.timestamp || new Date().toISOString(),
-      });
-    } catch {
-      // Non-blocking fallback
-    }
-
     return new Response('OK', { status: 200 });
   } catch (error) {
-    console.error('Dodo webhook processing notice:', error);
-    return new Response('Webhook processed with notice', { status: 200 });
+    console.error('Dodo webhook processing error:', error);
+    return new Response('Webhook processing failed', { status: 500 });
   }
 }

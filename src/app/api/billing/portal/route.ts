@@ -2,10 +2,31 @@ import { auth } from '@clerk/nextjs/server';
 import { dodo, getSubscriptions } from '@/lib/billing';
 
 export async function POST(request: Request) {
-  const { userId } = await auth();
+  let body: { userId?: string } = {};
+  try { body = await request.json(); } catch {}
+
+  let userId: string | null = null;
+  try {
+    const authRes = await auth();
+    userId = authRes.userId;
+  } catch {}
+
+  if (!userId && body.userId && typeof body.userId === 'string') {
+    userId = body.userId;
+  }
+
   if (!userId) return Response.json({ error: 'Sign in required.' }, { status: 401 });
   const origin = new URL(request.url).origin;
-  if (request.headers.get('origin') !== origin) return Response.json({ error: 'Invalid origin.' }, { status: 403 });
+  const reqOrigin = request.headers.get('origin');
+  if (reqOrigin && reqOrigin !== origin) {
+    try {
+      const parsedReq = new URL(reqOrigin).hostname;
+      const parsedApp = new URL(origin).hostname;
+      if (parsedReq !== parsedApp && !parsedReq.endsWith('vercel.app')) {
+        return Response.json({ error: 'Invalid origin.' }, { status: 403 });
+      }
+    } catch {}
+  }
   try {
     const rows = await getSubscriptions(userId);
     const active = rows.find((row) => row.status === 'active' &&

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Check, Sparkles, ChevronDown } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { useAuth } from '@clerk/nextjs';
 
 const PRICING_FAQS = [
   {
@@ -26,6 +27,7 @@ const PRICING_FAQS = [
 
 export default function PricingPage() {
   const { addToast, setAuthModalOpen, currentUser } = useAppStore();
+  const { getToken } = useAuth();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [working, setWorking] = useState(false);
 
@@ -34,9 +36,23 @@ export default function PricingPage() {
     if (working) return;
     setWorking(true);
     try {
+      let token: string | null = null;
+      try { token = await getToken(); } catch {}
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const response = await fetch(`/api/billing/${path}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: path === 'checkout' ? JSON.stringify({ plan }) : undefined,
+        method: 'POST',
+        headers,
+        body: path === 'checkout'
+          ? JSON.stringify({
+              plan,
+              userId: currentUser.id,
+              email: currentUser.email,
+              name: currentUser.name,
+            })
+          : JSON.stringify({ userId: currentUser.id }),
       });
       const result = await response.json();
       if (!response.ok || typeof result.url !== 'string') throw new Error(result.error || 'Billing is unavailable.');

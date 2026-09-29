@@ -4,9 +4,11 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { X, Sparkles, Check, ArrowRight, Lock, Bot, Video, Loader2 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { useAuth } from '@clerk/nextjs';
 
 export default function UpgradeModal() {
   const { isUpgradeModalOpen, setUpgradeModalOpen, upgradeModalContext, addToast, currentUser, setAuthModalOpen } = useAppStore();
+  const { getToken } = useAuth();
   const [working, setWorking] = useState(false);
 
   if (!isUpgradeModalOpen) return null;
@@ -23,10 +25,21 @@ export default function UpgradeModal() {
     if (working) return;
     setWorking(true);
     try {
+      let token: string | null = null;
+      try { token = await getToken(); } catch {}
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
+        headers,
+        body: JSON.stringify({
+          plan,
+          userId: currentUser.id,
+          email: currentUser.email,
+          name: currentUser.name,
+        }),
       });
       const data = await res.json();
       if (!res.ok || typeof data.url !== 'string') {

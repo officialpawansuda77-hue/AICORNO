@@ -35,7 +35,8 @@ create or replace function public.apply_dodo_subscription_event(
 declare v_existing_user text;
 begin
   if p_event_id is null or p_subscription_id is null or p_user_id is null or p_user_id = ''
-     or p_customer_id is null or p_product_id is null or p_status is null or p_event_at is null then
+     or p_user_id = 'unknown' or p_customer_id is null or p_product_id is null or p_product_id = ''
+     or p_status is null or p_event_at is null then
     raise exception 'Incomplete Dodo webhook';
   end if;
   insert into public.dodo_webhook_events(event_id) values (p_event_id)
