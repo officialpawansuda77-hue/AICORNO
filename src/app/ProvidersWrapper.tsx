@@ -7,6 +7,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ToastContainer from '@/components/ui/ToastContainer';
 import AuthModal from '@/components/ui/AuthModal';
+import UpgradeModal from '@/components/ui/UpgradeModal';
 import CookieConsentBanner from '@/components/common/CookieConsentBanner';
 
 export default function ProvidersWrapper({ children }: { children: React.ReactNode }) {
@@ -18,6 +19,7 @@ export default function ProvidersWrapper({ children }: { children: React.ReactNo
       <Footer />
       <ToastContainer />
       <AuthModal />
+      <UpgradeModal />
       <CookieConsentBanner />
     </AppProvider>
   );

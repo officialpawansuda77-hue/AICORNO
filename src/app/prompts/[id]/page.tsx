@@ -43,7 +43,9 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
     isFavorite,
     incrementCopies,
     recordView,
-    addToast
+    addToast,
+    openUpgradeModal,
+    currentUser,
   } = useAppStore();
 
   const [prompt, setPrompt] = useState<Prompt | undefined>(() => getPromptById(id));
@@ -129,6 +131,16 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
     : [prompt.preview_url];
 
   const handleCopy = () => {
+    if (!prompt) return;
+
+    if (prompt.is_pro && !currentUser?.is_pro && currentUser?.role !== 'admin') {
+      openUpgradeModal({
+        reason: 'pro_prompt',
+        itemTitle: prompt.title,
+      });
+      return;
+    }
+
     if (navigator.clipboard) {
       navigator.clipboard.writeText(prompt.prompt);
     }

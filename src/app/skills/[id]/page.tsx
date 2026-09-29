@@ -29,7 +29,7 @@ import confetti from 'canvas-confetti';
 export default function SkillDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const { skills, getSkillById, toggleFavorite, isFavorite, incrementInstalls, addToast } = useAppStore();
+  const { skills, getSkillById, toggleFavorite, isFavorite, incrementInstalls, addToast, openUpgradeModal, currentUser } = useAppStore();
 
   const skill = getSkillById(id);
   const [copied, setCopied] = useState(false);
@@ -56,6 +56,14 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   const favorited = isFavorite(skill.id);
 
   const handleCopyInstall = () => {
+    if (!currentUser?.is_pro && currentUser?.role !== 'admin') {
+      openUpgradeModal({
+        reason: 'skill',
+        itemTitle: skill.title,
+      });
+      return;
+    }
+
     if (navigator.clipboard) {
       navigator.clipboard.writeText(skill.install_prompt);
     }
@@ -82,6 +90,14 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   };
 
   const handleDownload = () => {
+    if (!currentUser?.is_pro && currentUser?.role !== 'admin') {
+      openUpgradeModal({
+        reason: 'skill',
+        itemTitle: skill.title,
+      });
+      return;
+    }
+
     const blob = new Blob([skill.install_prompt], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

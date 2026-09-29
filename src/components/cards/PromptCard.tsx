@@ -23,7 +23,7 @@ interface PromptCardProps {
 
 export default function PromptCard({ prompt, priority = false }: PromptCardProps) {
   const router = useRouter();
-  const { toggleFavorite, isFavorite, incrementCopies, addToast } = useAppStore();
+  const { toggleFavorite, isFavorite, incrementCopies, addToast, openUpgradeModal, currentUser } = useAppStore();
   const [copied, setCopied] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -32,6 +32,15 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+
+    // Check if this is a Pro item and user is not pro/admin
+    if (prompt.is_pro && !currentUser?.is_pro && currentUser?.role !== 'admin') {
+      openUpgradeModal({
+        reason: 'pro_prompt',
+        itemTitle: prompt.title,
+      });
+      return;
+    }
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(prompt.prompt);

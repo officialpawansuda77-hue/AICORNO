@@ -14,7 +14,7 @@ interface SkillCardProps {
 
 export default function SkillCard({ skill }: SkillCardProps) {
   const router = useRouter();
-  const { toggleFavorite, isFavorite, incrementInstalls, addToast } = useAppStore();
+  const { toggleFavorite, isFavorite, incrementInstalls, addToast, openUpgradeModal, currentUser } = useAppStore();
   const [copied, setCopied] = useState(false);
 
   const favorited = isFavorite(skill.id);
@@ -22,6 +22,15 @@ export default function SkillCard({ skill }: SkillCardProps) {
   const handleCopyInstall = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+
+    // Skills are exclusive to the $9.99 Pro Unlimited plan
+    if (!currentUser?.is_pro && currentUser?.role !== 'admin') {
+      openUpgradeModal({
+        reason: 'skill',
+        itemTitle: skill.title,
+      });
+      return;
+    }
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(skill.install_prompt);

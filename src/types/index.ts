@@ -35,6 +35,7 @@ export interface Prompt {
   rating: number;
   is_pro: boolean;
   is_featured: boolean;
+  featured_on_home?: boolean;
   is_trending: boolean;
   created_at: string;
 }
@@ -107,6 +108,16 @@ export interface BlogPost {
   date: string;
   read_time: string;
   cover_image: string;
+}
+
+export interface BlogPostItem {
+  id: string;
+  title: string;
+  description?: string;
+  url: string;
+  platform: 'x' | 'blog' | 'youtube' | 'substack' | 'announcement';
+  date: string;
+  tag?: string;
 }
 
 export interface UserSubmission {

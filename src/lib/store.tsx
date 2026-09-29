@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useUser, useAuth, useClerk } from '@clerk/nextjs';
-import { Prompt, Skill, UserSubmission, UserProfile, Category, AIModel } from '@/types';
+import { Prompt, Skill, UserSubmission, UserProfile, Category, AIModel, BlogPostItem } from '@/types';
 import { isEmailAdmin } from './authUtils';
 import { isCategoryMatch } from './categories';
 import { IMAGE_PROMPTS } from '@/data/imagePrompts';
@@ -80,6 +80,21 @@ interface AppContextType {
   isAuthModalOpen: boolean;
   setAuthModalOpen: (open: boolean) => void;
 
+  // Pro Upgrade Modal ($9.99/mo gate)
+  isUpgradeModalOpen: boolean;
+  setUpgradeModalOpen: (open: boolean) => void;
+  upgradeModalContext: { reason: 'pro_prompt' | 'skill'; itemTitle?: string } | null;
+  openUpgradeModal: (context: { reason: 'pro_prompt' | 'skill'; itemTitle?: string }) => void;
+
+  // Home Featured Prompts
+  homeFeatured: { imagePromptId?: string; videoPromptId?: string; skillId?: string };
+  setHomeFeatured: (featured: { imagePromptId?: string; videoPromptId?: string; skillId?: string }) => void;
+
+  // Dynamic Blog & Social Posts
+  blogPosts: BlogPostItem[];
+  addBlogPostItem: (item: Omit<BlogPostItem, 'id' | 'date'>) => void;
+  deleteBlogPostItem: (id: string) => void;
+
   // Toasts
   toasts: ToastItem[];
   addToast: (toast: Omit<ToastItem, 'id'>) => void;
@@ -106,6 +121,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isAuthModalOpen, setAuthModalOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
+  // Pro Upgrade Modal state
+  const [isUpgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [upgradeModalContext, setUpgradeModalContext] = useState<{ reason: 'pro_prompt' | 'skill'; itemTitle?: string } | null>(null);
+
+  // Home Featured Prompts
+  const [homeFeatured, setHomeFeaturedState] = useState<{ imagePromptId?: string; videoPromptId?: string; skillId?: string }>({});
+
+  // Dynamic Blog & Social Posts
+  const [blogPosts, setBlogPosts] = useState<BlogPostItem[]>([]);
+
   // 1. Initial Load: Sync database categories, models, prompts, submissions from Supabase
   useEffect(() => {
     let isMounted = true;
@@ -113,6 +138,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     async function loadData() {
       setIsLoadingPrompts(true);
       try {
+        // Immediately initialize favorites from localStorage so UI is instant & persistent
+        let savedFavs: string[] = [];
+        if (typeof window !== 'undefined') {
+          try {
+            savedFavs = JSON.parse(localStorage.getItem('aicorn_favorites') || '[]');
+            if (isMounted && savedFavs.length > 0) {
+              setFavorites(savedFavs);
+            }
+          } catch {}
+          try {
+            const savedFeat = JSON.parse(localStorage.getItem('aicorn_home_featured') || '{}');
+            if (isMounted) setHomeFeaturedState(savedFeat);
+          } catch {}
+          try {
+            const savedBlog = JSON.parse(localStorage.getItem('aicorn_blog_posts') || '[]');
+            if (isMounted) setBlogPosts(savedBlog);
+          } catch {}
+        }
+
         const [cats, mods, promptsRes, subs] = await Promise.all([
           fetchCategoriesFromDb(),
           fetchModelsFromDb(),
@@ -141,6 +185,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               loadedPrompts.push(p);
             }
           }
+
+          // Merge persistent copies, views, and favorites counts from localStorage
+          let promptStats: Record<string, { copies?: number; views?: number; favorites?: number }> = {};
+          if (typeof window !== 'undefined') {
+            try {
+              promptStats = JSON.parse(localStorage.getItem('aicorn_prompt_stats') || '{}');
+            } catch {}
+          }
+
+          const finalPrompts = loadedPrompts.map((p) => {
+            const st = promptStats[p.id];
+            if (!st) return p;
+            return {
+              ...p,
+              copies: st.copies !== undefined ? st.copies : p.copies,
+              views: st.views !== undefined ? st.views : p.views,
+              favorites: st.favorites !== undefined ? st.favorites : p.favorites,
+            };
+          });
 
           // Load skills (SKILLS_DATA + local user skills)
           let localSkills: Skill[] = [];
@@ -176,10 +239,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             return true;
           }));
 
-          setPrompts(loadedPrompts);
+          setPrompts(finalPrompts);
           setCategories((cats && cats.length > 0 ? cats : DEFAULT_CATEGORIES).map((category) => ({
             ...category,
-            prompt_count: loadedPrompts.filter((prompt) =>
+            prompt_count: finalPrompts.filter((prompt) =>
               prompt.category === category.name || prompt.category === category.slug
             ).length,
           })));
@@ -265,10 +328,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setCurrentUser(userProfile);
         }
 
-        // Fetch user favorites from Supabase
+        // Fetch user favorites from Supabase and merge with local favorites
         const userFavs = await fetchUserFavoritesFromDb(clerkUser.id);
         if (isMounted && userFavs && userFavs.length > 0) {
-          setFavorites(userFavs.map((p) => p.id));
+          const dbFavIds = userFavs.map((p) => p.id);
+          setFavorites((prev) => {
+            const merged = Array.from(new Set([...prev, ...dbFavIds]));
+            if (typeof window !== 'undefined') {
+              try {
+                localStorage.setItem('aicorn_favorites', JSON.stringify(merged));
+              } catch {}
+            }
+            return merged;
+          });
         }
       } catch (err) {
         console.warn('Sync Clerk user to Supabase error:', err);
@@ -285,7 +357,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       syncClerkUserToSupabase(user);
     } else {
       setCurrentUser(null);
-      setFavorites([]);
+      // Keep local favorites intact for guests/refresh
       setIsLoadingAuth(false);
     }
 
@@ -372,9 +444,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const target = prompts.find((p) => p.id === id);
     if (!target) return;
 
+    const newCopies = (target.copies || 0) + 1;
+
     // Optimistic UI increment
     setPrompts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, copies: p.copies + 1 } : p))
+      prev.map((p) => (p.id === id ? { ...p, copies: newCopies } : p))
     );
 
     setRecentCopies((prev) => [
@@ -382,11 +456,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...prev.filter((r) => r.id !== id).slice(0, 19),
     ]);
 
-    // Record copy in Supabase with Clerk user ID if available
+    // Persist copies count to localStorage so refresh keeps the count
+    if (typeof window !== 'undefined') {
+      try {
+        const stats = JSON.parse(localStorage.getItem('aicorn_prompt_stats') || '{}');
+        stats[id] = { ...stats[id], copies: newCopies };
+        localStorage.setItem('aicorn_prompt_stats', JSON.stringify(stats));
+
+        const localPrompts = JSON.parse(localStorage.getItem('aicorn_local_prompts') || '[]');
+        const updatedLocal = localPrompts.map((lp: Prompt) => (lp.id === id ? { ...lp, copies: newCopies } : lp));
+        localStorage.setItem('aicorn_local_prompts', JSON.stringify(updatedLocal));
+      } catch {}
+    }
+
+    // Record copy in Supabase
     recordPromptCopyInDb(id, currentUser?.id);
   };
 
   const recordView = (id: string) => {
+    setPrompts((prev) =>
+      prev.map((p) => {
+        if (p.id === id) {
+          const newViews = (p.views || 0) + 1;
+          if (typeof window !== 'undefined') {
+            try {
+              const stats = JSON.parse(localStorage.getItem('aicorn_prompt_stats') || '{}');
+              stats[id] = { ...stats[id], views: newViews };
+              localStorage.setItem('aicorn_prompt_stats', JSON.stringify(stats));
+            } catch {}
+          }
+          return { ...p, views: newViews };
+        }
+        return p;
+      })
+    );
+
     recordPromptViewInDb(id, currentUser?.id);
   };
 
@@ -462,30 +566,98 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     ]);
   };
 
-  // Favorite toggle (Optimistic + Supabase with Clerk user ID)
+  // Favorite toggle (Works for both logged-in users and guests, completely persistent across refreshes)
   const toggleFavorite = async (id: string): Promise<boolean> => {
-    if (!currentUser) {
-      openSignIn();
-      return false;
+    const exists = favorites.includes(id);
+    const nextFavorites = exists ? favorites.filter((f) => f !== id) : [...favorites, id];
+    setFavorites(nextFavorites);
+
+    // Save to localStorage immediately so refresh preserves favorites
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('aicorn_favorites', JSON.stringify(nextFavorites));
+      } catch {}
     }
 
-    const exists = favorites.includes(id);
+    // Update prompt favorites count optimistically & persist in stats
+    setPrompts((prev) =>
+      prev.map((p) => {
+        if (p.id === id) {
+          const newFavCount = Math.max(0, (p.favorites || 0) + (exists ? -1 : 1));
+          if (typeof window !== 'undefined') {
+            try {
+              const stats = JSON.parse(localStorage.getItem('aicorn_prompt_stats') || '{}');
+              stats[id] = { ...stats[id], favorites: newFavCount };
+              localStorage.setItem('aicorn_prompt_stats', JSON.stringify(stats));
+            } catch {}
+          }
+          return { ...p, favorites: newFavCount };
+        }
+        return p;
+      })
+    );
 
-    // Optimistic update
     if (exists) {
-      setFavorites((prev) => prev.filter((f) => f !== id));
       addToast({ title: 'Removed from Favorites', type: 'info' });
-      toggleFavoriteInDb(id, currentUser.id);
+      if (currentUser?.id) {
+        toggleFavoriteInDb(id, currentUser.id).catch(() => {});
+      }
       return false;
     } else {
-      setFavorites((prev) => [...prev, id]);
       addToast({ title: 'Saved to Favorites', type: 'success' });
-      toggleFavoriteInDb(id, currentUser.id);
+      if (currentUser?.id) {
+        toggleFavoriteInDb(id, currentUser.id).catch(() => {});
+      }
       return true;
     }
   };
 
   const isFavorite = (id: string) => favorites.includes(id);
+
+  // Pro Upgrade Modal opener
+  const openUpgradeModal = (context: { reason: 'pro_prompt' | 'skill'; itemTitle?: string }) => {
+    setUpgradeModalContext(context);
+    setUpgradeModalOpen(true);
+  };
+
+  // Home Featured Prompts handler
+  const setHomeFeatured = (featured: { imagePromptId?: string; videoPromptId?: string; skillId?: string }) => {
+    setHomeFeaturedState(featured);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('aicorn_home_featured', JSON.stringify(featured));
+      } catch {}
+    }
+    addToast({ title: 'Homepage Featured Updated', message: 'Homepage Explore cards updated with selected media.', type: 'success' });
+  };
+
+  // Dynamic Blog & Social Posts handlers
+  const addBlogPostItem = (item: Omit<BlogPostItem, 'id' | 'date'>) => {
+    const newItem: BlogPostItem = {
+      ...item,
+      id: `post-${Date.now()}`,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    };
+    const updated = [newItem, ...blogPosts];
+    setBlogPosts(updated);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('aicorn_blog_posts', JSON.stringify(updated));
+      } catch {}
+    }
+    addToast({ title: 'Update Published!', message: `"${item.title}" added to posts.`, type: 'success' });
+  };
+
+  const deleteBlogPostItem = (id: string) => {
+    const updated = blogPosts.filter((p) => p.id !== id);
+    setBlogPosts(updated);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('aicorn_blog_posts', JSON.stringify(updated));
+      } catch {}
+    }
+    addToast({ title: 'Post Deleted', type: 'info' });
+  };
 
   // Submissions (Supabase + Local)
   const addSubmission = async (data: Omit<UserSubmission, 'id' | 'created_at' | 'status'>): Promise<Prompt> => {
@@ -597,7 +769,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.warn('Clerk sign out warning:', e);
     }
     setCurrentUser(null);
-    setFavorites([]);
     addToast({ title: 'Signed Out', message: 'You are now browsing as guest.', type: 'info' });
   };
 
@@ -635,6 +806,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         logout,
         isAuthModalOpen,
         setAuthModalOpen,
+        isUpgradeModalOpen,
+        setUpgradeModalOpen,
+        upgradeModalContext,
+        openUpgradeModal,
+        homeFeatured,
+        setHomeFeatured,
+        blogPosts,
+        addBlogPostItem,
+        deleteBlogPostItem,
         toasts,
         addToast,
         removeToast,

@@ -8,15 +8,15 @@ import { useAppStore } from '@/lib/store';
 const PRICING_FAQS = [
   {
     q: 'Can I cancel my subscription anytime?',
-    a: 'Yes, you can cancel your Monthly or Yearly plan at any time with a single click from your user dashboard. You will retain access until the end of your billing cycle.'
+    a: 'Yes, you can cancel your Starter ($4.49/mo) or Pro Unlimited ($9.99/mo) plan at any time with a single click from your user dashboard. You retain access until the end of your billing cycle.'
   },
   {
-    q: 'What is included in the Lifetime plan?',
-    a: 'Lifetime provides perpetual access to all current and future Premium image prompts, video prompts, and AI agent skills without any recurring subscription fees.'
+    q: 'What is the difference between the $4.49 and $9.99 plans?',
+    a: 'The $4.49 Starter plan includes unlimited access to copy all Image Prompts and standard video prompts. The $9.99 Pro Unlimited plan unlocks everything without limits: all Pro Video Prompts (Veo 3, Sora, Kling) and all AI Agent Skills (Claude Code, Cursor, Codex).'
   },
   {
-    q: 'Do I get access to the install instruction packs for Claude Code and Cursor?',
-    a: 'Yes, all Pro and Lifetime members receive full access to our downloadable SKILL.md instruction files and one-click copy install prompts.'
+    q: 'What happens if I try to copy a Pro Video Prompt or Skill on the Starter plan?',
+    a: 'You will see a Pro Upgrade popup allowing you to upgrade to the $9.99/mo plan instantly to unlock that prompt or skill.'
   },
   {
     q: 'Can I use the generated prompts for commercial client work?',
@@ -86,17 +86,74 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Three Pricing Cards Matching Reference Screenshot 2 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto mb-20 items-stretch">
+        {/* Two Pricing Cards: $4.49 Starter vs $9.99 Pro Unlimited */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-20 items-stretch">
           
-          {/* 1. Monthly Plan */}
+          {/* 1. Starter Plan ($4.49/mo) */}
           <div className="aicorn-card p-8 flex flex-col justify-between relative bg-white">
             <div>
-              <span className="text-xs font-extrabold text-[#8A867D] uppercase tracking-wider block mb-2">
-                Cancel anytime
-              </span>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-xs font-extrabold text-[#8A867D] uppercase tracking-wider block">
+                  Starter Plan
+                </span>
+                <span className="bg-[#F7F4EE] border border-[#E8E4DA] text-[#101010] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  Cancel anytime
+                </span>
+              </div>
               <h3 className="text-2xl sm:text-3xl font-black text-[#101010] mb-4">
-                Monthly
+                Starter Creator
+              </h3>
+
+              <div className="flex items-baseline gap-1 mb-2">
+                <span className="text-4xl sm:text-5xl font-black text-[#101010]">$4.49</span>
+                <span className="text-sm font-bold text-[#8A867D]">/ month</span>
+              </div>
+              <p className="text-xs text-[#8A867D] mb-8 font-medium">
+                Full unlimited access to all AI image prompts and standard video prompts.
+              </p>
+
+              <div className="space-y-3.5 text-xs text-[#1A1A1A] font-semibold border-t border-[#F0EDE6] pt-6">
+                {[
+                  { text: 'Copy & use ALL Image Prompts (Unlimited)', included: true },
+                  { text: 'Access standard Video Prompts', included: true },
+                  { text: 'One-click clipboard prompt copying', included: true },
+                  { text: 'Advanced search, styles & ratio filters', included: true },
+                  { text: 'Weekly trending prompt updates', included: true },
+                  { text: 'Pro Video Prompts (Requires $9.99 Pro)', included: false },
+                  { text: 'AI Agent Skills (Requires $9.99 Pro)', included: false },
+                ].map((feat, i) => (
+                  <div key={i} className={`flex items-start gap-2.5 ${feat.included ? 'text-[#1A1A1A]' : 'text-[#8A867D]/60'}`}>
+                    <Check className={`w-4 h-4 shrink-0 mt-0.5 ${feat.included ? 'text-[#101010]' : 'text-[#8A867D]/40'}`} />
+                    <span className={feat.included ? '' : 'line-through'}>{feat.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => handleSelectPlan('Starter ($4.49/mo)')}
+              className="pill-btn w-full mt-10 py-3.5 rounded-full bg-[#101010] hover:bg-[#252525] text-white font-extrabold text-xs shadow-md transition-all"
+            >
+              Get Starter Access ($4.49/mo)
+            </button>
+          </div>
+
+          {/* 2. Pro Unlimited Plan ($9.99/mo - MOST POPULAR) */}
+          <div className="aicorn-card p-8 flex flex-col justify-between relative bg-white border-2 border-[#101010] shadow-xl md:-translate-y-2">
+            {/* Badges */}
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-xs font-black text-[#101010]">
+                Everything Unlimited
+              </span>
+              <span className="bg-[#D8F651] text-[#101010] text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-2xs flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-[#101010]" />
+                <span>Most popular</span>
+              </span>
+            </div>
+
+            <div>
+              <h3 className="text-2xl sm:text-3xl font-black text-[#101010] mb-4">
+                Pro Unlimited
               </h3>
 
               <div className="flex items-baseline gap-1 mb-2">
@@ -104,68 +161,19 @@ export default function PricingPage() {
                 <span className="text-sm font-bold text-[#8A867D]">/ month</span>
               </div>
               <p className="text-xs text-[#8A867D] mb-8 font-medium">
-                Full Premium access, billed monthly.
+                Complete unrestricted access to all image prompts, Pro video prompts, and AI Agent Skills.
               </p>
 
               <div className="space-y-3.5 text-xs text-[#1A1A1A] font-semibold border-t border-[#F0EDE6] pt-6">
                 {[
-                  'Access all Premium Prompts & Skills',
-                  'Install from the web or CLI',
-                  'Unlimited one-click clipboard copying',
-                  'Advanced parameter search filters',
-                  'Ongoing weekly model updates',
-                  'Cancel whenever you need'
-                ].map((feat) => (
-                  <div key={feat} className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-[#101010] shrink-0 mt-0.5" />
-                    <span>{feat}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={() => handleSelectPlan('Monthly')}
-              className="pill-btn w-full mt-10 py-3.5 rounded-full bg-[#101010] hover:bg-[#252525] text-white font-extrabold text-xs shadow-md transition-all"
-            >
-              Get Monthly Access
-            </button>
-          </div>
-
-          {/* 2. Yearly Plan (MOST POPULAR - Lime Border & Badge) */}
-          <div className="aicorn-card p-8 flex flex-col justify-between relative bg-white border-2 border-[#101010] shadow-xl md:-translate-y-2">
-            {/* Badges */}
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-black text-[#101010]">
-                Save 34% a year
-              </span>
-              <span className="bg-[#D8F651] text-[#101010] text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-2xs">
-                Most popular
-              </span>
-            </div>
-
-            <div>
-              <h3 className="text-2xl sm:text-3xl font-black text-[#101010] mb-4">
-                Yearly
-              </h3>
-
-              <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-4xl sm:text-5xl font-black text-[#101010]">$79</span>
-                <span className="text-sm font-bold text-[#8A867D]">/ year</span>
-              </div>
-              <p className="text-xs text-[#8A867D] mb-8 font-medium">
-                Full Premium access for a lower annual price.
-              </p>
-
-              <div className="space-y-3.5 text-xs text-[#1A1A1A] font-semibold border-t border-[#F0EDE6] pt-6">
-                {[
-                  'Access all Premium Prompts & Skills',
-                  'Install from the web or CLI',
-                  'Secure browser-authorized CLI access',
-                  'Ongoing Skill & Prompt updates',
-                  'New Premium Skills included',
+                  'Unlimited copy on ALL Image Prompts',
+                  'Unlimited copy on ALL Video Prompts (including Pro & 4K)',
+                  'Full access to all Reusable AI Agent Skills',
+                  '1-click CLI & Web instruction pack install',
                   'Download SKILL.md and JSON configs',
-                  'Cancel whenever you need'
+                  'Commercial usage rights for agency & client work',
+                  'Early access to new Sora, Veo 3 & Opus model drops',
+                  'Cancel anytime with zero fees'
                 ].map((feat) => (
                   <div key={feat} className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-[#101010] shrink-0 mt-0.5" />
@@ -176,62 +184,12 @@ export default function PricingPage() {
             </div>
 
             <button
-              onClick={() => handleSelectPlan('Yearly')}
+              onClick={() => handleSelectPlan('Pro Unlimited ($9.99/mo)')}
               className="pill-btn w-full mt-10 py-3.5 rounded-full bg-[#D8F651] hover:bg-[#C5E53E] text-[#101010] font-black text-xs shadow-lg transition-transform active:scale-95"
             >
-              Get Yearly Pro
+              Get Pro Unlimited ($9.99/mo)
             </button>
           </div>
-
-          {/* 3. Founding Lifetime Plan */}
-          <div className="aicorn-card p-8 flex flex-col justify-between relative bg-white">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-extrabold text-[#8A867D] uppercase tracking-wider">
-                Pay once &bull; Founding price
-              </span>
-              <span className="bg-[#F7F4EE] border border-[#E8E4DA] text-[#101010] text-[10px] font-bold px-2 py-0.5 rounded-full">
-                Founding offer
-              </span>
-            </div>
-
-            <div>
-              <h3 className="text-2xl sm:text-3xl font-black text-[#101010] mb-4">
-                Founding Lifetime
-              </h3>
-
-              <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-4xl sm:text-5xl font-black text-[#101010]">$169</span>
-                <span className="text-sm font-bold text-[#8A867D]">one-time</span>
-              </div>
-              <p className="text-xs text-[#8A867D] mb-8 font-medium">
-                Founding price — increases as the library grows.
-              </p>
-
-              <div className="space-y-3.5 text-xs text-[#1A1A1A] font-semibold border-t border-[#F0EDE6] pt-6">
-                {[
-                  'Access all Premium Skills & Prompts forever',
-                  'Install from the web or CLI',
-                  'Secure browser-authorized CLI access',
-                  'Ongoing lifetime updates',
-                  'New future models included (Sora, Veo 4)',
-                  'No subscription or renewal bill ever'
-                ].map((feat) => (
-                  <div key={feat} className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-[#101010] shrink-0 mt-0.5" />
-                    <span>{feat}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={() => handleSelectPlan('Lifetime')}
-              className="pill-btn w-full mt-10 py-3.5 rounded-full bg-[#101010] hover:bg-[#252525] text-white font-extrabold text-xs shadow-md transition-all"
-            >
-              Get Founding Lifetime
-            </button>
-          </div>
-
         </div>
 
         {/* Pricing FAQ Section (Matching Reference 2 bottom) */}

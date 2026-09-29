@@ -9,6 +9,27 @@ import PromptCard from '@/components/cards/PromptCard';
 import CategoryCard from '@/components/cards/CategoryCard';
 
 export function ExploreSection() {
+  const { prompts, skills, homeFeatured } = useAppStore();
+
+  // Find real uploaded image prompt (admin selected or latest)
+  const featuredImagePrompt =
+    prompts.find((p) => p.type === 'image' && (p.id === homeFeatured.imagePromptId || p.featured_on_home)) ||
+    prompts.find((p) => p.type === 'image');
+
+  // Find real uploaded video prompt (admin selected or latest)
+  const featuredVideoPrompt =
+    prompts.find((p) => p.type === 'video' && (p.id === homeFeatured.videoPromptId || p.featured_on_home)) ||
+    prompts.find((p) => p.type === 'video');
+
+  // Find real skill
+  const featuredSkill =
+    skills.find((s) => s.id === homeFeatured.skillId) ||
+    skills[0];
+
+  const imagePreview = featuredImagePrompt?.preview_url || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800&auto=format&fit=crop';
+  const videoPreview = featuredVideoPrompt?.preview_url || 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800&auto=format&fit=crop';
+  const skillPreview = featuredSkill?.preview_image || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop';
+
   return (
     <section className="py-16 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
@@ -31,14 +52,19 @@ export function ExploreSection() {
         <div className="aicorn-card overflow-hidden flex flex-col justify-between group">
           <div className="relative h-64 overflow-hidden bg-[#EDEDEA]">
             <img
-              src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800&auto=format&fit=crop"
-              alt="Image Prompts"
+              src={imagePreview}
+              alt={featuredImagePrompt?.title || 'Visual Image Prompts'}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
             <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black text-[#101010] flex items-center gap-1.5 shadow-sm">
               <ImageIcon className="w-3.5 h-3.5 text-[#101010]" />
               <span>IMAGE PROMPTS</span>
             </div>
+            {featuredImagePrompt && (
+              <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full max-w-[85%] truncate">
+                {featuredImagePrompt.title}
+              </div>
+            )}
           </div>
           <div className="p-6">
             <h3 className="text-xl font-black text-[#101010] mb-2">
@@ -61,15 +87,20 @@ export function ExploreSection() {
         <div className="aicorn-card overflow-hidden flex flex-col justify-between group">
           <div className="relative h-64 overflow-hidden bg-[#EDEDEA]">
             <img
-              src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800&auto=format&fit=crop"
-              alt="Video Prompts"
+              src={videoPreview}
+              alt={featuredVideoPrompt?.title || 'Cinematic Video Prompts'}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
             <div className="absolute top-4 left-4 bg-[#101010] px-3 py-1 rounded-full text-xs font-black text-[#D8F651] flex items-center gap-1.5 shadow-sm">
               <Video className="w-3.5 h-3.5 text-[#D8F651]" />
               <span>VIDEO PROMPTS</span>
             </div>
-            <div className="absolute bottom-4 right-4 bg-black/80 text-white font-mono text-xs px-2 py-0.5 rounded">
+            {featuredVideoPrompt && (
+              <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full max-w-[85%] truncate">
+                {featuredVideoPrompt.title}
+              </div>
+            )}
+            <div className="absolute bottom-3 right-3 bg-black/80 text-white font-mono text-xs px-2 py-0.5 rounded">
               Veo 3 &bull; Sora &bull; Kling
             </div>
           </div>
@@ -94,14 +125,19 @@ export function ExploreSection() {
         <div className="aicorn-card overflow-hidden flex flex-col justify-between group">
           <div className="relative h-64 overflow-hidden bg-[#EDEDEA]">
             <img
-              src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop"
-              alt="Agent Skills"
+              src={skillPreview}
+              alt={featuredSkill?.title || 'Agent Skills'}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
             <div className="absolute top-4 left-4 bg-[#D8F651] text-[#101010] px-3 py-1 rounded-full text-xs font-black flex items-center gap-1.5 shadow-sm">
               <Bot className="w-3.5 h-3.5 text-[#101010]" />
               <span>AGENT SKILLS</span>
             </div>
+            {featuredSkill && (
+              <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full max-w-[85%] truncate">
+                {featuredSkill.title}
+              </div>
+            )}
           </div>
           <div className="p-6">
             <h3 className="text-xl font-black text-[#101010] mb-2">

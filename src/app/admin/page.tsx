@@ -41,6 +41,8 @@ import {
   FolderPlus,
   Loader2,
   Upload,
+  ExternalLink,
+  MessageSquareQuote,
 } from 'lucide-react';
 import { Prompt, Category, AIModel, UserSubmission } from '@/types';
 import { parseMediaUrl } from '@/lib/mediaUtils';
@@ -60,15 +62,28 @@ export default function AdminPanelPage() {
     currentUser,
     isLoadingAuth,
     setAuthModalOpen,
+    homeFeatured,
+    setHomeFeatured,
+    blogPosts,
+    addBlogPostItem,
+    deleteBlogPostItem,
     addToast
   } = useAppStore();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'prompts' | 'skills' | 'submissions' | 'categories' | 'models' | 'analytics' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'prompts' | 'skills' | 'submissions' | 'categories' | 'models' | 'analytics' | 'settings' | 'blog'>('dashboard');
   
+  // Blog link form state
+  const [newBlogTitle, setNewBlogTitle] = useState('');
+  const [newBlogUrl, setNewBlogUrl] = useState('');
+  const [newBlogPlatform, setNewBlogPlatform] = useState<'x' | 'blog' | 'youtube' | 'substack' | 'announcement'>('x');
+  const [newBlogDesc, setNewBlogDesc] = useState('');
+  const [newBlogTag, setNewBlogTag] = useState('');
+
   // Prompt edit/create modal state
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [formFeaturedOnHome, setFormFeaturedOnHome] = useState(false);
 
   const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -205,6 +220,7 @@ export default function AdminPanelPage() {
     setFormIsPro(false);
     setFormIsFeatured(false);
     setFormIsTrending(false);
+    setFormFeaturedOnHome(false);
     setIsPromptModalOpen(true);
   };
 
@@ -224,6 +240,7 @@ export default function AdminPanelPage() {
     setFormIsPro(p.is_pro);
     setFormIsFeatured(p.is_featured);
     setFormIsTrending(p.is_trending);
+    setFormFeaturedOnHome(Boolean(p.featured_on_home || (p.type === 'image' && homeFeatured.imagePromptId === p.id) || (p.type === 'video' && homeFeatured.videoPromptId === p.id)));
     setIsPromptModalOpen(true);
   };
 
@@ -270,9 +287,18 @@ export default function AdminPanelPage() {
         is_pro: formIsPro,
         is_featured: formIsFeatured,
         is_trending: formIsTrending,
+        featured_on_home: formFeaturedOnHome,
       });
+
+      if (formFeaturedOnHome) {
+        if (formType === 'image') {
+          setHomeFeatured({ ...homeFeatured, imagePromptId: editingPrompt.id });
+        } else if (formType === 'video') {
+          setHomeFeatured({ ...homeFeatured, videoPromptId: editingPrompt.id });
+        }
+      }
     } else {
-      await addPrompt({
+      const created = await addPrompt({
         title: formTitle,
         type: formType,
         prompt: formPrompt,
@@ -294,10 +320,37 @@ export default function AdminPanelPage() {
         is_pro: formIsPro,
         is_featured: formIsFeatured,
         is_trending: formIsTrending,
+        featured_on_home: formFeaturedOnHome,
       });
+
+      if (formFeaturedOnHome && created?.id) {
+        if (formType === 'image') {
+          setHomeFeatured({ ...homeFeatured, imagePromptId: created.id });
+        } else if (formType === 'video') {
+          setHomeFeatured({ ...homeFeatured, videoPromptId: created.id });
+        }
+      }
     }
     setIsPromptModalOpen(false);
     refreshAdminData();
+  };
+
+  const handlePublishBlogPost = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBlogTitle.trim() || !newBlogUrl.trim()) return;
+
+    addBlogPostItem({
+      title: newBlogTitle.trim(),
+      url: newBlogUrl.trim(),
+      platform: newBlogPlatform,
+      description: newBlogDesc.trim() || undefined,
+      tag: newBlogTag.trim() || undefined,
+    });
+
+    setNewBlogTitle('');
+    setNewBlogUrl('');
+    setNewBlogDesc('');
+    setNewBlogTag('');
   };
 
   const handleDeletePrompt = async (id: string) => {
@@ -473,6 +526,7 @@ export default function AdminPanelPage() {
             { id: 'prompts', label: `Prompts (${activePrompts.length})`, icon: Sparkles },
             { id: 'skills', label: `Skills (${skills.length})`, icon: Bot },
             { id: 'submissions', label: `Submissions (${activeSubmissions.length})`, icon: CheckCircle },
+            { id: 'blog', label: `Blog & Social (${blogPosts.length})`, icon: MessageSquareQuote },
             { id: 'categories', label: `Categories (${dbCategories.length || 16})`, icon: Layers },
             { id: 'models', label: `Models (${dbModels.length || 17})`, icon: Video },
             { id: 'analytics', label: 'Analytics', icon: TrendingUp },
@@ -605,7 +659,52 @@ export default function AdminPanelPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                  <div className="flex items-center gap-2 self-end sm:self-center shrink-0 flex-wrap">
+                    {/* Direct PRO Only Toggle Button */}
+                    <button
+                      onClick={() => {
+                        updatePrompt(p.id, { is_pro: !p.is_pro });
+                        addToast({
+                          title: !p.is_pro ? 'Marked as Pro Only' : 'Marked as Free',
+                          message: !p.is_pro
+                            ? `"${p.title}" now requires the $9.99/mo Pro plan to copy.`
+                            : `"${p.title}" can now be copied on $4.49 plan.`,
+                          type: 'info',
+                        });
+                      }}
+                      className={`px-2.5 py-1.5 rounded-xl text-[10px] font-black border transition-all ${
+                        p.is_pro
+                          ? 'bg-[#FF4B26] text-white border-[#FF4B26] shadow-2xs'
+                          : 'bg-[#F7F4EE] hover:bg-[#E8E4DA] text-[#8A867D] border-[#E8E4DA]'
+                      }`}
+                      title="Toggle Pro ($9.99/mo gate)"
+                    >
+                      {p.is_pro ? '★ PRO ONLY' : 'FREE'}
+                    </button>
+
+                    {/* Direct Pin To Home Explore Button */}
+                    <button
+                      onClick={() => {
+                        if (p.type === 'image') {
+                          setHomeFeatured({ ...homeFeatured, imagePromptId: p.id });
+                        } else {
+                          setHomeFeatured({ ...homeFeatured, videoPromptId: p.id });
+                        }
+                      }}
+                      className={`px-2.5 py-1.5 rounded-xl text-[10px] font-bold border transition-all ${
+                        (p.type === 'image' && homeFeatured.imagePromptId === p.id) ||
+                        (p.type === 'video' && homeFeatured.videoPromptId === p.id)
+                          ? 'bg-[#D8F651] text-[#101010] border-[#101010] font-black'
+                          : 'bg-[#F7F4EE] hover:bg-[#E8E4DA] text-[#8A867D] border-[#E8E4DA]'
+                      }`}
+                      title="Set as featured media on Homepage Explore section"
+                    >
+                      {(p.type === 'image' && homeFeatured.imagePromptId === p.id) ||
+                      (p.type === 'video' && homeFeatured.videoPromptId === p.id)
+                        ? '✓ ON HOME'
+                        : 'PIN TO HOME'}
+                    </button>
+
                     <button
                       onClick={() => updatePrompt(p.id, { is_trending: !p.is_trending })}
                       className={`p-2 rounded-xl text-xs font-bold border transition-colors ${
@@ -828,6 +927,146 @@ export default function AdminPanelPage() {
               <div><span className="font-bold">Database:</span> Supabase PostgreSQL with RLS Enabled</div>
               <div><span className="font-bold">Auth Provider:</span> Clerk (Supabase Third-Party Auth)</div>
               <div><span className="font-bold">Media Storage:</span> Supabase Storage (prompt-images, prompt-videos, user-submissions)</div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 9: BLOG & SOCIAL UPDATES */}
+        {activeTab === 'blog' && (
+          <div className="space-y-8">
+            <div className="bg-white rounded-3xl border border-[#E8E4DA] p-6 sm:p-8">
+              <h3 className="text-xl font-black text-[#101010] mb-2">Publish Blog & Social Update</h3>
+              <p className="text-xs text-[#8A867D] mb-6">
+                Post official links (from X/Twitter, Substack, YouTube, or your blog). These will appear on the /blog page.
+              </p>
+
+              <form onSubmit={handlePublishBlogPost} className="space-y-4 max-w-2xl">
+                <div>
+                  <label className="block text-xs font-bold text-[#101010] mb-1">Post Title</label>
+                  <input
+                    type="text"
+                    required
+                    value={newBlogTitle}
+                    onChange={(e) => setNewBlogTitle(e.target.value)}
+                    placeholder="e.g. Veo 3 Video Prompts & Camera Pacing Guide Released"
+                    className="w-full px-4 py-2.5 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs font-medium focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-[#101010] mb-1">Post / Article URL</label>
+                    <input
+                      type="url"
+                      required
+                      value={newBlogUrl}
+                      onChange={(e) => setNewBlogUrl(e.target.value)}
+                      placeholder="https://x.com/... or https://..."
+                      className="w-full px-4 py-2.5 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs font-medium focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#101010] mb-1">Platform</label>
+                    <select
+                      value={newBlogPlatform}
+                      onChange={(e) => setNewBlogPlatform(e.target.value as any)}
+                      className="w-full px-3 py-2.5 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs font-bold"
+                    >
+                      <option value="x">𝕏 (Twitter)</option>
+                      <option value="blog">Blog Article</option>
+                      <option value="substack">Substack</option>
+                      <option value="youtube">YouTube</option>
+                      <option value="announcement">Announcement</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-[#101010] mb-1">Tag / Category</label>
+                    <input
+                      type="text"
+                      value={newBlogTag}
+                      onChange={(e) => setNewBlogTag(e.target.value)}
+                      placeholder="e.g. Veo 3, Prompt Guide, Release"
+                      className="w-full px-4 py-2.5 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs font-medium focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#101010] mb-1">Short Summary (Optional)</label>
+                    <input
+                      type="text"
+                      value={newBlogDesc}
+                      onChange={(e) => setNewBlogDesc(e.target.value)}
+                      placeholder="Brief note about the post..."
+                      className="w-full px-4 py-2.5 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs font-medium focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="pill-btn px-6 py-3 rounded-full bg-[#101010] hover:bg-[#202020] text-[#D8F651] font-black text-xs shadow-sm flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Publish Update Link</span>
+                </button>
+              </form>
+            </div>
+
+            {/* List of existing posts */}
+            <div className="bg-white rounded-3xl border border-[#E8E4DA] p-6 sm:p-8">
+              <h3 className="text-lg font-black text-[#101010] mb-4">
+                Published Updates & Posts ({blogPosts.length})
+              </h3>
+
+              {blogPosts.length === 0 ? (
+                <div className="py-8 text-center text-xs text-[#8A867D]">
+                  No update posts published yet. Add your first post link above!
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {blogPosts.map((post) => (
+                    <div
+                      key={post.id}
+                      className="p-4 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] flex items-center justify-between gap-4 flex-wrap"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="px-2 py-0.5 rounded-full bg-[#101010] text-[#D8F651] text-[10px] font-black uppercase">
+                            {post.platform === 'x' ? '𝕏 Post' : post.platform.toUpperCase()}
+                          </span>
+                          <span className="text-xs text-[#8A867D]">{post.date}</span>
+                          {post.tag && <span className="text-xs text-[#8A867D]">&bull; {post.tag}</span>}
+                        </div>
+                        <h4 className="text-sm font-bold text-[#101010] truncate">{post.title}</h4>
+                        <p className="text-xs text-[#8A867D] truncate max-w-lg">{post.url}</p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <a
+                          href={post.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 rounded-xl bg-white border border-[#E8E4DA] text-xs font-bold text-[#101010] hover:bg-[#FAF8F5] flex items-center gap-1"
+                        >
+                          <span>Open</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                        <button
+                          onClick={() => deleteBlogPostItem(post.id)}
+                          className="p-2 rounded-xl bg-[#FEECEC] hover:bg-[#FDDDDD] text-[#FF4B26] border border-[#FCCECE]"
+                          title="Delete Post"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1071,15 +1310,24 @@ export default function AdminPanelPage() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-6 pt-2">
-                  <label className="flex items-center gap-2 text-xs font-bold text-[#101010] cursor-pointer">
+                <div className="flex items-center gap-4 pt-2 flex-wrap">
+                  <label className="flex items-center gap-2 text-xs font-bold text-[#101010] cursor-pointer bg-[#F7F4EE] px-3 py-1.5 rounded-xl border border-[#E8E4DA]">
                     <input
                       type="checkbox"
                       checked={formIsPro}
                       onChange={(e) => setFormIsPro(e.target.checked)}
                       className="rounded"
                     />
-                    <span>Pro Only</span>
+                    <span>★ Pro Only ($9.99/mo gate)</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-xs font-bold text-[#101010] cursor-pointer bg-[#F7F4EE] px-3 py-1.5 rounded-xl border border-[#E8E4DA]">
+                    <input
+                      type="checkbox"
+                      checked={formFeaturedOnHome}
+                      onChange={(e) => setFormFeaturedOnHome(e.target.checked)}
+                      className="rounded"
+                    />
+                    <span>Show on Homepage Explore Card</span>
                   </label>
                   <label className="flex items-center gap-2 text-xs font-bold text-[#101010] cursor-pointer">
                     <input
