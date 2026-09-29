@@ -93,11 +93,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const { signOut } = useAuth();
   const { openSignIn, openSignUp } = useClerk();
 
-  const [prompts, setPrompts] = useState<Prompt[]>([...IMAGE_PROMPTS, ...VIDEO_PROMPTS]);
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(true);
   const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [models, setModels] = useState<AIModel[]>(DEFAULT_MODELS);
-  const [skills, setSkills] = useState<Skill[]>(SKILLS_DATA);
+  const [skills, setSkills] = useState<Skill[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [submissions, setSubmissions] = useState<UserSubmission[]>([]);
   const [recentCopies, setRecentCopies] = useState<{ id: string; title: string; type: string; timestamp: number }[]>([]);
@@ -116,7 +116,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const [cats, mods, promptsRes, subs] = await Promise.all([
           fetchCategoriesFromDb(),
           fetchModelsFromDb(),
-          fetchPromptsFromDb({ limit: 60 }),
+          fetchPromptsFromDb({ limit: 100 }),
           fetchSubmissionsFromDb(),
         ]);
 
@@ -130,9 +130,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }
           }
 
-          const basePrompts = promptsRes?.prompts?.length
-            ? promptsRes.prompts
-            : [...IMAGE_PROMPTS, ...VIDEO_PROMPTS];
+          const basePrompts = promptsRes?.prompts || [];
 
           // Deduplicate prompts by ID, prioritizing newly created local prompts
           const seen = new Set<string>();
@@ -145,15 +143,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
 
           setPrompts(loadedPrompts);
-          // Full static dataset for accurate category counts (not limited to the
-          // 60-record fetched sample or the deduplicated displayed list).
-          const countPool = [...IMAGE_PROMPTS, ...VIDEO_PROMPTS];
           setCategories((cats && cats.length > 0 ? cats : DEFAULT_CATEGORIES).map((category) => ({
             ...category,
-            // Counts are derived from the full prompt dataset, never from the
-            // 60-record sample or the placeholder totals in the seed/category table.
-            // Use exact matching to avoid false positives from substring overlap.
-            prompt_count: countPool.filter((prompt) =>
+            prompt_count: loadedPrompts.filter((prompt) =>
               prompt.category === category.name || prompt.category === category.slug
             ).length,
           })));

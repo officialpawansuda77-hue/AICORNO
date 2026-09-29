@@ -38,17 +38,12 @@ const CANONICAL_PROMPTS = [...IMAGE_PROMPTS, ...VIDEO_PROMPTS];
 
 // Helper to map DB row to frontend UI Prompt model
 export function mapDbPromptToUI(row: any): Prompt {
-  const canonical = CANONICAL_PROMPTS.find(
-    (prompt) => prompt.title.toLowerCase() === String(row.title || '').toLowerCase()
-  );
-  const rawCategory = canonical?.category || row.category?.name || row.category_name || row.category || 'General';
+  const rawCategory = row.category?.name || row.category_name || row.category || 'Automotive';
   const categoryName = normalizeCategoryName(rawCategory);
-  const subcategoryName = canonical?.subcategory || row.subcategory?.name || row.subcategory || 'General';
-  const modelName = canonical?.model || row.model?.name || row.model_name || row.model || 'Flux.1 Pro';
-  const type = canonical?.type || (row.type as 'image' | 'video') || 'image';
+  const subcategoryName = row.subcategory?.name || row.subcategory || 'General';
+  const modelName = row.model?.name || row.model_name || row.model || 'ChatGPT';
+  const type = (row.type as 'image' | 'video') || 'image';
 
-  // Extract tags from joined prompt_tags if available, falling back to the
-  // verified local record when the database has no tag relation.
   const tags: string[] = [];
   if (Array.isArray(row.prompt_tags)) {
     row.prompt_tags.forEach((pt: any) => {
@@ -58,43 +53,43 @@ export function mapDbPromptToUI(row: any): Prompt {
     tags.push(...row.tags);
   }
 
-  const previewUrl = canonical?.preview_url || row.image_url || row.thumbnail_url || row.preview_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop';
-  const thumbnails = canonical?.thumbnails || [row.image_url || row.preview_url, row.thumbnail_url].filter(Boolean);
+  const previewUrl = row.image_url || row.thumbnail_url || row.preview_url || '';
+  const thumbnails = [row.image_url || row.preview_url, row.thumbnail_url].filter(Boolean);
 
   return {
-    id: row.id || canonical?.id,
-    title: canonical?.title || row.title || 'Untitled Prompt',
+    id: row.id,
+    title: row.title || 'Untitled Prompt',
     type,
-    prompt: canonical?.prompt || row.prompt || '',
-    description: canonical?.description || row.description || '',
+    prompt: row.prompt || '',
+    description: row.description || '',
     category: categoryName,
     subcategory: subcategoryName,
     model: modelName,
-    style: canonical?.style || row.style || 'Photorealistic',
-    aspect_ratio: canonical?.aspect_ratio || row.aspect_ratio || '16:9',
-    duration: canonical?.duration || row.duration || (type === 'video' ? '8s' : undefined),
-    camera: canonical?.camera || row.camera || 'Cinematic tracking shot',
-    lighting: canonical?.lighting || row.lighting || 'Studio lighting',
-    lens: canonical?.lens || row.lens || '50mm Prime f/1.8',
-    composition: canonical?.composition || row.composition || 'Rule of thirds',
-    mood: canonical?.mood || row.mood || 'Editorial & Prestigious',
+    style: row.style || 'Photorealistic',
+    aspect_ratio: row.aspect_ratio || '16:9',
+    duration: row.duration || (type === 'video' ? '8s' : undefined),
+    camera: row.camera || 'Cinematic tracking shot',
+    lighting: row.lighting || 'Studio lighting',
+    lens: row.lens || '50mm Prime f/1.8',
+    composition: row.composition || 'Rule of thirds',
+    mood: row.mood || 'Editorial & Prestigious',
     preview_url: previewUrl,
-    video_url: canonical?.video_url || row.video_url || undefined,
-    thumbnails,
-    tags: tags.length > 0 ? tags : canonical?.tags || ['ai', 'creative'],
-    author: canonical?.author || {
+    video_url: row.video_url || undefined,
+    thumbnails: thumbnails.length > 0 ? thumbnails : [previewUrl],
+    tags: tags.length > 0 ? tags : ['ai', 'creative'],
+    author: {
       name: row.author_name || 'AICORN Studio',
       handle: row.author_handle || '@aicorn_curator',
       avatar: row.author_avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
     },
-    copies: row.copies_count ?? row.copies ?? canonical?.copies ?? 0,
-    favorites: row.favorites_count ?? row.favorites ?? canonical?.favorites ?? 0,
-    views: row.views_count ?? row.views ?? canonical?.views ?? 0,
-    rating: canonical?.rating ?? 5.0,
-    is_pro: row.is_pro ?? canonical?.is_pro ?? false,
-    is_featured: row.featured ?? row.is_featured ?? canonical?.is_featured ?? false,
-    is_trending: row.trending ?? row.is_trending ?? canonical?.is_trending ?? false,
-    created_at: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : canonical?.created_at || '2026-03-01',
+    copies: row.copies_count ?? row.copies ?? 0,
+    favorites: row.favorites_count ?? row.favorites ?? 0,
+    views: row.views_count ?? row.views ?? 0,
+    rating: 5.0,
+    is_pro: row.is_pro ?? false,
+    is_featured: Boolean(row.featured ?? row.is_featured ?? true),
+    is_trending: Boolean(row.trending ?? row.is_trending ?? true),
+    created_at: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
   };
 }
 
@@ -109,7 +104,7 @@ export async function fetchPromptsFromDb(params: FetchPromptsParams = {}): Promi
     aspectRatio,
     duration,
     price,
-    sort = 'popular',
+    sort = 'latest',
     search,
     page = 1,
     limit = 24,
@@ -152,50 +147,29 @@ export async function fetchPromptsFromDb(params: FetchPromptsParams = {}): Promi
       query = query.ilike('style', `%${style}%`);
     }
 
-    // Search, category, model, and tag matching happens after mapping so
-    // local verified records (including Ghibli) and legacy DB labels use the
-    // exact same rules.
-
-    // Sorting
+    // Sorting - default to newest first so user's uploads are always visible at top
     if (sort === 'copies') {
-      query = query.order('copies_count', { ascending: false });
-    } else if (sort === 'latest') {
-      query = query.order('created_at', { ascending: false });
+      query = query.order('copies_count', { ascending: false }).order('created_at', { ascending: false });
     } else if (sort === 'trending') {
-      query = query.eq('trending', true).order('copies_count', { ascending: false });
+      query = query.order('copies_count', { ascending: false }).order('created_at', { ascending: false });
     } else if (sort === 'favorited') {
-      query = query.order('favorites_count', { ascending: false });
+      query = query.order('favorites_count', { ascending: false }).order('created_at', { ascending: false });
+    } else if (sort === 'popular') {
+      query = query.order('views_count', { ascending: false }).order('created_at', { ascending: false });
     } else {
-      query = query.order('views_count', { ascending: false });
+      query = query.order('created_at', { ascending: false });
     }
 
-    // Fetch the published catalog before client-side normalization/filtering.
-    // No range() here — we fetch all published rows so the merged
-    // static pool and pagination happen client-side.
     const { data, error } = await query;
 
     if (error) {
-      console.warn('Supabase prompts query error, using local fallback:', error.message);
-      return fallbackFilterPrompts(params);
+      console.warn('Supabase prompts query error:', error.message);
+      return { prompts: [], total: 0, page: 1, totalPages: 1 };
     }
 
-    if (data && data.length > 0) {
+    if (data) {
       const dbPrompts = data.map(mapDbPromptToUI);
-      const staticPool = (type === 'video' ? VIDEO_PROMPTS : type === 'image' ? IMAGE_PROMPTS : [...IMAGE_PROMPTS, ...VIDEO_PROMPTS]);
-
-      // De-duplicate by title. DB rows win for identity/counters while
-      // mapDbPromptToUI supplies the verified local preview for known records.
-      const byTitle = new Map<string, Prompt>();
-      for (const prompt of dbPrompts) {
-        byTitle.set(prompt.title.toLowerCase(), prompt);
-      }
-      for (const prompt of staticPool) {
-        if (!byTitle.has(prompt.title.toLowerCase())) {
-          byTitle.set(prompt.title.toLowerCase(), prompt);
-        }
-      }
-
-      let filteredResults = Array.from(byTitle.values());
+      let filteredResults = dbPrompts;
 
       // Type filter
       if (type) {
@@ -688,55 +662,32 @@ export async function updateSubmissionStatusInDb(id: string, status: 'approved' 
 // 10. ADMIN PROMPT CRUD OPERATIONS IN SUPABASE
 export async function adminCreatePromptInDb(data: any): Promise<Prompt | null> {
   try {
-    const { data: created, error } = await supabase.from('prompts').insert({
-      title: data.title,
-      type: data.type,
-      prompt: data.prompt,
-      description: data.description,
-      style: data.style,
-      aspect_ratio: data.aspect_ratio,
-      duration: data.duration || null,
-      camera: data.camera || null,
-      lighting: data.lighting || null,
-      image_url: data.preview_url,
-      video_url: data.video_url || null,
-      thumbnail_url: data.preview_url,
-      status: 'published',
-      featured: Boolean(data.is_featured),
-      trending: Boolean(data.is_trending),
-    }).select().single();
+    const res = await fetch('/api/prompts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
 
-    if (!error && created) {
-      return mapDbPromptToUI(created);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.prompt) {
+        return mapDbPromptToUI(json.prompt);
+      }
     }
   } catch (e) {
-    console.error('Admin create prompt error:', e);
+    console.error('Admin create prompt error via /api/prompts:', e);
   }
   return null;
 }
 
 export async function adminUpdatePromptInDb(id: string, updates: Partial<Prompt>): Promise<boolean> {
   try {
-    const payload: any = {};
-    if (updates.title) payload.title = updates.title;
-    if (updates.description) payload.description = updates.description;
-    if (updates.prompt) payload.prompt = updates.prompt;
-    if (updates.type) payload.type = updates.type;
-    if (updates.style) payload.style = updates.style;
-    if (updates.aspect_ratio) payload.aspect_ratio = updates.aspect_ratio;
-    if (updates.duration) payload.duration = updates.duration;
-    if (updates.camera) payload.camera = updates.camera;
-    if (updates.lighting) payload.lighting = updates.lighting;
-    if (updates.preview_url) {
-      payload.image_url = updates.preview_url;
-      payload.thumbnail_url = updates.preview_url;
-    }
-    if (updates.video_url) payload.video_url = updates.video_url;
-    if (updates.is_featured !== undefined) payload.featured = updates.is_featured;
-    if (updates.is_trending !== undefined) payload.trending = updates.is_trending;
-
-    const { error } = await supabase.from('prompts').update(payload).eq('id', id);
-    return !error;
+    const res = await fetch('/api/prompts', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...updates }),
+    });
+    return res.ok;
   } catch (e) {
     console.error('Admin update prompt error:', e);
     return false;
@@ -745,8 +696,10 @@ export async function adminUpdatePromptInDb(id: string, updates: Partial<Prompt>
 
 export async function adminDeletePromptInDb(id: string): Promise<boolean> {
   try {
-    const { error } = await supabase.from('prompts').delete().eq('id', id);
-    return !error;
+    const res = await fetch(`/api/prompts?id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
   } catch (e) {
     console.error('Admin delete prompt error:', e);
     return false;

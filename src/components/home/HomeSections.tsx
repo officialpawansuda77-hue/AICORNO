@@ -130,10 +130,12 @@ export function TrendingPromptsSection() {
   const [activeTab, setActiveTab] = useState<'all' | 'image' | 'video'>('all');
 
   const filtered = prompts
-    .filter((p) => p.is_trending || p.is_featured)
     .filter((p) => (activeTab === 'all' ? true : p.type === activeTab))
-    .sort((a, b) => b.copies - a.copies)
-    .slice(0, 6);
+    .slice(0, 8);
+
+  if (prompts.length === 0) {
+    return null;
+  }
 
   return (
     <section className="py-16 sm:py-20 bg-[#F2EFE8] border-y border-[#E8E4DA]">

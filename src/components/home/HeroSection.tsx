@@ -3,24 +3,21 @@
 import React from 'react';
 import Link from 'next/link';
 import { ArrowRight, Sparkles, Bot, Image as ImageIcon } from 'lucide-react';
-import { IMAGE_PROMPTS } from '@/data/imagePrompts';
-import { VIDEO_PROMPTS } from '@/data/videoPrompts';
-
-const MARQUEE_ITEMS = [...IMAGE_PROMPTS, ...VIDEO_PROMPTS].map((prompt) => ({
-  id: prompt.id,
-  title: prompt.title,
-  tag: prompt.category,
-  model: prompt.model,
-  img: prompt.preview_url,
-  href: `/prompts/${prompt.id}`,
-}));
-
-// Build both rows from the same published prompt records. This keeps every
-// marquee card searchable and prevents stale/fake titles from being shown.
-const MARQUEE_ROW_1 = MARQUEE_ITEMS.slice(0, Math.ceil(MARQUEE_ITEMS.length / 2));
-const MARQUEE_ROW_2 = MARQUEE_ITEMS.slice(Math.ceil(MARQUEE_ITEMS.length / 2));
+import { useAppStore } from '@/lib/store';
 
 export default function HeroSection() {
+  const { prompts } = useAppStore();
+  const marqueeItems = prompts.map((prompt) => ({
+    id: prompt.id,
+    title: prompt.title,
+    tag: prompt.category,
+    model: prompt.model,
+    img: prompt.preview_url,
+    href: `/prompts/${prompt.id}`,
+  }));
+
+  const marqueeRow1 = marqueeItems.slice(0, Math.max(1, Math.ceil(marqueeItems.length / 2)));
+  const marqueeRow2 = marqueeItems.slice(Math.ceil(marqueeItems.length / 2));
   return (
     <section className="relative overflow-hidden pt-12 pb-16 md:pt-18 md:pb-24 border-b border-[#E8E4DA]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
@@ -84,65 +81,79 @@ export default function HeroSection() {
       </div>
 
       {/* TWO HORIZONTAL MARQUEE ROWS (Opposite directions, infinite calm loop, pause on hover) */}
-      <div className="mt-14 space-y-4 pause-hover overflow-hidden select-none">
-        
-        {/* Row 1 - moves left */}
-        <div className="flex animate-marquee-left gap-4">
-          {[...MARQUEE_ROW_1, ...MARQUEE_ROW_1].map((item, idx) => (
-            <Link
-              key={`r1-${idx}`}
-              href={item.href}
-              className="w-56 sm:w-64 h-40 rounded-[22px] overflow-hidden bg-white border border-[#E8E4DA] shadow-sm relative group shrink-0 cursor-pointer block"
-            >
-              <img
-                src={item.img}
-                alt={item.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-3.5 flex flex-col justify-end text-left">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-[#D8F651] text-[#101010]">
-                    {item.tag}
-                  </span>
-                  <span className="text-[10px] font-bold text-white/90">
-                    {item.model}
-                  </span>
+      {marqueeItems.length > 0 && (
+        <div className="mt-14 space-y-4 pause-hover overflow-hidden select-none">
+          {/* Row 1 - moves left */}
+          <div className="flex animate-marquee-left gap-4">
+            {[...marqueeRow1, ...marqueeRow1, ...marqueeRow1].slice(0, 12).map((item, idx) => (
+              <Link
+                key={`r1-${idx}`}
+                href={item.href}
+                className="w-56 sm:w-64 h-40 rounded-[22px] overflow-hidden bg-white border border-[#E8E4DA] shadow-sm relative group shrink-0 cursor-pointer block"
+              >
+                {item.img ? (
+                  <img
+                    src={item.img}
+                    alt={item.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-[#101010] flex items-center justify-center p-4">
+                    <span className="text-xs font-mono text-[#D8F651] truncate">{item.title}</span>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-3.5 flex flex-col justify-end text-left">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-[#D8F651] text-[#101010]">
+                      {item.tag}
+                    </span>
+                    <span className="text-[10px] font-bold text-white/90">
+                      {item.model}
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-white truncate">{item.title}</h4>
                 </div>
-                <h4 className="text-xs font-bold text-white truncate">{item.title}</h4>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
 
-        {/* Row 2 - moves right */}
-        <div className="flex animate-marquee-right gap-4">
-          {[...MARQUEE_ROW_2, ...MARQUEE_ROW_2].map((item, idx) => (
-            <Link
-              key={`row2-${idx}`}
-              href={item.href}
-              className="w-56 sm:w-64 h-40 rounded-[22px] overflow-hidden bg-white border border-[#E8E4DA] shadow-sm relative group shrink-0 cursor-pointer block"
-            >
-              <img
-                src={item.img}
-                alt={item.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-3.5 flex flex-col justify-end text-left">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-white text-[#101010]">
-                    {item.tag}
-                  </span>
-                  <span className="text-[10px] font-bold text-[#D8F651]">
-                    {item.model}
-                  </span>
-                </div>
-                <h4 className="text-xs font-bold text-white truncate">{item.title}</h4>
-              </div>
-            </Link>
-          ))}
+          {/* Row 2 - moves right */}
+          {marqueeRow2.length > 0 && (
+            <div className="flex animate-marquee-right gap-4">
+              {[...marqueeRow2, ...marqueeRow2, ...marqueeRow2].slice(0, 12).map((item, idx) => (
+                <Link
+                  key={`row2-${idx}`}
+                  href={item.href}
+                  className="w-56 sm:w-64 h-40 rounded-[22px] overflow-hidden bg-white border border-[#E8E4DA] shadow-sm relative group shrink-0 cursor-pointer block"
+                >
+                  {item.img ? (
+                    <img
+                      src={item.img}
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#101010] flex items-center justify-center p-4">
+                      <span className="text-xs font-mono text-[#D8F651] truncate">{item.title}</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-3.5 flex flex-col justify-end text-left">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-white text-[#101010]">
+                        {item.tag}
+                      </span>
+                      <span className="text-[10px] font-bold text-[#D8F651]">
+                        {item.model}
+                      </span>
+                    </div>
+                    <h4 className="text-xs font-bold text-white truncate">{item.title}</h4>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
-
-      </div>
+      )}
     </section>
   );
 }
