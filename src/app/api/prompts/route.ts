@@ -1,8 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { auth, currentUser } from '@clerk/nextjs/server';
+import { isEmailAdmin } from '@/lib/authUtils';
 import { fetchPromptsFromDb } from '@/lib/supabaseService';
 
 export const runtime = 'nodejs';
+
+async function requireAdmin(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+  if (req.headers.get('origin') !== new URL(req.url).origin) {
+    return NextResponse.json({ error: 'Invalid origin' }, { status: 403 });
+  }
+  const user = await currentUser();
+  if (!user || user.id !== userId || !isEmailAdmin(user.primaryEmailAddress?.emailAddress)) {
+    return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+  }
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ error: 'Admin service not configured' }, { status: 503 });
+  }
+  return null;
+}
 
 // GET /api/prompts -> Supabase PostgreSQL Prompts
 export async function GET(req: NextRequest) {
@@ -40,6 +58,8 @@ export async function GET(req: NextRequest) {
 
 // POST /api/prompts -> Supabase PostgreSQL Prompt Creation (Bypasses RLS with supabaseAdmin)
 export async function POST(req: NextRequest) {
+  const denied = await requireAdmin(req);
+  if (denied) return denied;
   try {
     const body = await req.json();
 
@@ -134,6 +154,8 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/prompts -> Update Prompt
 export async function PATCH(req: NextRequest) {
+  const denied = await requireAdmin(req);
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { id, ...updates } = body;
@@ -176,6 +198,8 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE /api/prompts -> Delete Prompt
 export async function DELETE(req: NextRequest) {
+  const denied = await requireAdmin(req);
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');

@@ -73,6 +73,7 @@ interface AppContextType {
   // Auth / User (Clerk is the sole identity and authentication provider)
   currentUser: UserProfile | null;
   isLoadingAuth: boolean;
+  refreshMembership: () => Promise<'free' | 'starter' | 'pro'>;
   login: () => void;
   loginWithGoogle: () => void;
   signUp: () => void;
@@ -130,6 +131,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Dynamic Blog & Social Posts
   const [blogPosts, setBlogPosts] = useState<BlogPostItem[]>([]);
+
+  const refreshMembership = useCallback(async (): Promise<'free' | 'starter' | 'pro'> => {
+    if (!user?.id) throw new Error('Sign in required');
+    const response = await fetch('/api/billing/status', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Membership status unavailable');
+    const { tier, hasBillingAccount } = await response.json();
+    if (tier !== 'free' && tier !== 'starter' && tier !== 'pro') throw new Error('Invalid membership status');
+    setCurrentUser((previous) => previous?.id === user.id
+      ? { ...previous, membership: tier, has_billing_account: hasBillingAccount === true, is_pro: previous.role === 'admin' || tier === 'pro' }
+      : previous);
+    return tier;
+  }, [user?.id]);
 
   // 1. Initial Load: Sync database categories, models, prompts, submissions from Supabase
   useEffect(() => {
@@ -322,6 +335,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           avatar: clerkUser.imageUrl || profile?.avatar_url || `https://avatar.vercel.sh/${email || clerkUser.id}.png`,
           role,
           is_pro: role === 'admin',
+          membership: 'free',
+          has_billing_account: false,
           joined_date: clerkUser.createdAt
             ? new Date(clerkUser.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
             : 'March 2026',
@@ -329,6 +344,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         if (isMounted) {
           setCurrentUser(userProfile);
+          // Entitlements come from the authenticated server endpoint, not the checkout URL.
+          void refreshMembership().catch(() => {});
         }
 
         // Fetch user favorites from Supabase and merge with local favorites
@@ -367,7 +384,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [isUserLoaded, isSignedIn, user]);
+  }, [isUserLoaded, isSignedIn, user, refreshMembership]);
 
   // Toast handlers
   const addToast = useCallback((toast: Omit<ToastItem, 'id'>) => {
@@ -780,6 +797,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     prompts,
     isLoadingPrompts,
     getPromptById,
+    refreshMembership,
     addPrompt,
     updatePrompt,
     deletePrompt,
@@ -824,6 +842,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     prompts,
     isLoadingPrompts,
     getPromptById,
+    refreshMembership,
     addPrompt,
     updatePrompt,
     deletePrompt,

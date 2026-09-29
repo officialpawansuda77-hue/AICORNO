@@ -32,6 +32,20 @@ export default function UserDashboardPage() {
   } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'saved' | 'submissions' | 'history'>('overview');
+  const [billingBusy, setBillingBusy] = useState(false);
+
+  const manageBilling = async () => {
+    setBillingBusy(true);
+    try {
+      const response = await fetch('/api/billing/portal', { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok || typeof data.url !== 'string') throw new Error(data.error || 'Billing unavailable');
+      window.location.assign(data.url);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Billing unavailable');
+      setBillingBusy(false);
+    }
+  };
 
   if (!currentUser) {
     return (
@@ -79,9 +93,9 @@ export default function UserDashboardPage() {
                 <span className="px-2.5 py-0.5 rounded-full bg-[#D8F651] text-[#101010] text-[10px] font-black uppercase tracking-wider">
                   {currentUser.role}
                 </span>
-                {currentUser.is_pro && (
+                {currentUser.membership !== 'free' && (
                   <span className="px-2 py-0.5 rounded-full bg-[#FF4B26] text-white text-[10px] font-black uppercase">
-                    PRO MEMBER
+                    {currentUser.membership.toUpperCase()} MEMBER
                   </span>
                 )}
               </div>
@@ -92,6 +106,11 @@ export default function UserDashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            {currentUser.has_billing_account && (
+              <button onClick={manageBilling} disabled={billingBusy} className="pill-btn px-4 py-2.5 bg-[#F7F4EE] text-[#101010] font-bold text-xs rounded-full border border-[#E8E4DA] disabled:opacity-50">
+                {billingBusy ? 'Opening...' : 'Manage Billing'}
+              </button>
+            )}
             <Link
               href="/submit"
               className="pill-btn px-4 py-2.5 bg-[#101010] hover:bg-[#252525] text-[#D8F651] font-extrabold text-xs rounded-full flex items-center gap-1.5 shadow-sm"

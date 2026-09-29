@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
 import PromptCard from '@/components/cards/PromptCard';
 import { useAppStore } from '@/lib/store';
+import { canCopyPrompt } from '@/lib/membership';
 import { fetchPromptByIdFromDb } from '@/lib/supabaseService';
 import { Prompt } from '@/types';
 import { isCategoryMatch, normalizeCategoryName } from '@/lib/categories';
@@ -134,7 +135,7 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
   const handleCopy = () => {
     if (!prompt) return;
 
-    if (prompt.is_pro && !currentUser?.is_pro && currentUser?.role !== 'admin') {
+    if (!canCopyPrompt(prompt, currentUser)) {
       openUpgradeModal({
         reason: 'pro_prompt',
         itemTitle: prompt.title,

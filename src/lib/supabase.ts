@@ -30,9 +30,9 @@ export function createClerkSupabaseClient(clerkToken?: string | null) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Server-side / Admin Supabase client (using service role key)
-const serviceRoleKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qenhhbGVsZ2d0bHhhb3h4amtrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDY0MjE5MCwiZXhwIjoyMTA2MjE4MTkwfQ.0lCc4mFp9xJoESSNAX3RR5mE9p1gYrzB6srbTdUuEHY';
+// Never embed the service-role key in source or the browser bundle. API routes
+// that require administrative access must explicitly check the env variable.
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
 
 export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   auth: {

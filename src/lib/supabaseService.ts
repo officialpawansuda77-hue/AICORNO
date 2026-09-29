@@ -242,6 +242,16 @@ export async function fetchPromptsFromDb(params: FetchPromptsParams = {}): Promi
           return true;
         });
 
+      // This verified, locally hosted prompt has not yet been inserted in every
+      // Supabase environment. Count it as one actual curated record (not a fake
+      // category placeholder); prefer the DB copy once it is persisted.
+      const ghibliPrompt = IMAGE_PROMPTS.find((prompt) => prompt.id === 'img-10');
+      if (ghibliPrompt && !dbPrompts.some((prompt) =>
+        prompt.id === ghibliPrompt.id || prompt.title.trim().toLowerCase() === ghibliPrompt.title.trim().toLowerCase()
+      )) {
+        dbPrompts.push({ ...ghibliPrompt, copies: 0, favorites: 0, views: 0 });
+      }
+
       let filteredResults = dbPrompts;
 
       // Type filter

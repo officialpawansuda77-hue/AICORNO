@@ -1,25 +1,46 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { X, Sparkles, Check, ArrowRight, Lock, Bot, Video } from 'lucide-react';
+import { X, Sparkles, Check, ArrowRight, Lock, Bot, Video, Loader2 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 
 export default function UpgradeModal() {
-  const { isUpgradeModalOpen, setUpgradeModalOpen, upgradeModalContext, addToast } = useAppStore();
+  const { isUpgradeModalOpen, setUpgradeModalOpen, upgradeModalContext, addToast, currentUser, setAuthModalOpen } = useAppStore();
+  const [working, setWorking] = useState(false);
 
   if (!isUpgradeModalOpen) return null;
 
   const isSkill = upgradeModalContext?.reason === 'skill';
   const itemName = upgradeModalContext?.itemTitle || (isSkill ? 'Agent Skill' : 'Pro Prompt');
 
-  const handleSimulateUpgrade = () => {
-    setUpgradeModalOpen(false);
-    addToast({
-      title: 'Upgraded to Pro Unlimited ($9.99/mo)!',
-      message: 'You now have unlimited access to all Pro video prompts, agent skills, and full commercial usage.',
-      type: 'success',
-    });
+  const handleCheckout = async (plan: 'starter' | 'pro') => {
+    if (!currentUser) {
+      setUpgradeModalOpen(false);
+      setAuthModalOpen(true);
+      return;
+    }
+    if (working) return;
+    setWorking(true);
+    try {
+      const res = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await res.json();
+      if (!res.ok || typeof data.url !== 'string') {
+        throw new Error(data.error || 'Checkout is currently unavailable.');
+      }
+      window.location.assign(data.url);
+    } catch (err: any) {
+      addToast({
+        title: 'Checkout error',
+        message: err?.message || 'Could not start Dodo checkout.',
+        type: 'error',
+      });
+      setWorking(false);
+    }
   };
 
   return (
@@ -105,24 +126,33 @@ export default function UpgradeModal() {
 
         {/* Actions */}
         <div className="space-y-2.5">
-          <Link
-            href="/pricing"
-            onClick={() => setUpgradeModalOpen(false)}
-            className="pill-btn w-full py-3.5 bg-[#101010] hover:bg-[#202020] text-[#D8F651] font-black text-sm rounded-full flex items-center justify-center gap-2 shadow-md transition-transform hover:scale-[1.01]"
+          <button
+            onClick={() => handleCheckout('pro')}
+            disabled={working}
+            className="pill-btn w-full py-3.5 bg-[#101010] hover:bg-[#202020] text-[#D8F651] font-black text-sm rounded-full flex items-center justify-center gap-2 shadow-md transition-transform hover:scale-[1.01] disabled:opacity-50"
           >
-            <span>Upgrade to Pro Unlimited ($9.99/mo)</span>
-            <ArrowRight className="w-4 h-4 text-[#D8F651]" />
-          </Link>
+            {working ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-[#D8F651]" />
+                <span>Redirecting to Dodo Checkout...</span>
+              </span>
+            ) : (
+              <>
+                <span>Upgrade to Pro Unlimited ($9.99/mo)</span>
+                <ArrowRight className="w-4 h-4 text-[#D8F651]" />
+              </>
+            )}
+          </button>
 
           <div className="flex items-center justify-between text-xs px-2 pt-1 text-[#8A867D]">
             <span>Need only image prompts?</span>
-            <Link
-              href="/pricing"
-              onClick={() => setUpgradeModalOpen(false)}
+            <button
+              onClick={() => handleCheckout('starter')}
+              disabled={working}
               className="font-bold text-[#101010] hover:underline"
             >
-              View $4.49/mo Starter Plan &rarr;
-            </Link>
+              Choose $4.49/mo Starter Plan &rarr;
+            </button>
           </div>
         </div>
       </div>

@@ -2,42 +2,49 @@
 
 import React, { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { Check, Sparkles, HelpCircle, ChevronDown, ArrowRight } from 'lucide-react';
+import { Check, Sparkles, ChevronDown } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 
 const PRICING_FAQS = [
   {
-    q: 'Can I cancel my subscription anytime?',
-    a: 'Yes, you can cancel your Starter ($4.49/mo) or Pro Unlimited ($9.99/mo) plan at any time with a single click from your user dashboard. You retain access until the end of your billing cycle.'
+    q: 'How can I cancel my subscription?',
+    a: 'Sign in and open Manage Billing on this page or your dashboard. Cancellation and billing details are handled in the secure Dodo Payments customer portal.'
   },
   {
-    q: 'What is the difference between the $4.49 and $9.99 plans?',
-    a: 'The $4.49 Starter plan includes unlimited access to copy all Image Prompts and standard video prompts. The $9.99 Pro Unlimited plan unlocks everything without limits: all Pro Video Prompts (Veo 3, Sora, Kling) and all AI Agent Skills (Claude Code, Cursor, Codex).'
+    q: 'What is included in Starter and Pro?',
+    a: 'Starter unlocks premium image prompt copying. Pro also unlocks premium video prompt copying and skill instruction packs. Free prompts remain available to everyone.'
   },
   {
-    q: 'What happens if I try to copy a Pro Video Prompt or Skill on the Starter plan?',
-    a: 'You will see a Pro Upgrade popup allowing you to upgrade to the $9.99/mo plan instantly to unlock that prompt or skill.'
+    q: 'Can I change plans?',
+    a: 'Manage your current subscription in the billing portal before starting a different plan. We prevent a second active subscription to avoid double billing.'
   },
   {
-    q: 'Can I use the generated prompts for commercial client work?',
-    a: 'Absolutely. All prompts and skill workflows in AICORN are cleared for unlimited commercial, agency, and personal usage with zero royalty requirements.'
-  },
-  {
-    q: 'How frequently are new prompts and skills added?',
-    a: 'Our curatorial team tests and releases 15 to 25 verified prompts and agent skills every week as new foundation models and updates launch.'
+    q: 'When does my access start?',
+    a: 'Access updates after Dodo confirms your active subscription through a verified webhook. A checkout redirect alone does not activate a plan.'
   }
 ];
 
 export default function PricingPage() {
-  const { addToast, setAuthModalOpen } = useAppStore();
+  const { addToast, setAuthModalOpen, currentUser } = useAppStore();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [working, setWorking] = useState(false);
 
-  const handleSelectPlan = (planName: string) => {
-    addToast({
-      title: `${planName} Plan Selected`,
-      message: 'Checkout simulation active. You have full Pro access in this demo!',
-      type: 'success',
-    });
+  const beginBilling = async (path: 'checkout' | 'portal', plan?: 'starter' | 'pro') => {
+    if (!currentUser) { setAuthModalOpen(true); return; }
+    if (working) return;
+    setWorking(true);
+    try {
+      const response = await fetch(`/api/billing/${path}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: path === 'checkout' ? JSON.stringify({ plan }) : undefined,
+      });
+      const result = await response.json();
+      if (!response.ok || typeof result.url !== 'string') throw new Error(result.error || 'Billing is unavailable.');
+      window.location.assign(result.url);
+    } catch (error) {
+      addToast({ title: 'Billing unavailable', message: error instanceof Error ? error.message : 'Please try again.', type: 'error' });
+      setWorking(false);
+    }
   };
 
   return (
@@ -61,29 +68,12 @@ export default function PricingPage() {
             <span className="text-[#101010] font-bold">Curated and reviewed in-house</span>
           </p>
 
-          {/* Avatar Pile (Matching Reference) */}
-          <div className="flex items-center justify-center gap-3 mt-6">
-            <div className="flex -space-x-2 overflow-hidden">
-              {[
-                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=120&auto=format&fit=crop',
-                'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=120&auto=format&fit=crop',
-                'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=120&auto=format&fit=crop',
-                'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=120&auto=format&fit=crop',
-                'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=120&auto=format&fit=crop',
-                'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=120&auto=format&fit=crop',
-              ].map((img, i) => (
-                <img
-                  key={i}
-                  src={img}
-                  alt="Member"
-                  className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover"
-                />
-              ))}
-            </div>
-            <span className="text-xs font-bold text-[#1A1A1A]">
-              1,000+ creators and engineers supporting us
-            </span>
-          </div>
+          <p className="text-xs font-bold text-[#1A1A1A] mt-6">Secure checkout powered by Dodo Payments</p>
+          {currentUser?.has_billing_account && (
+            <button onClick={() => beginBilling('portal')} disabled={working} className="mt-4 pill-btn px-5 py-2.5 rounded-full bg-[#101010] text-[#D8F651] text-xs font-bold disabled:opacity-50">
+              Manage Billing
+            </button>
+          )}
         </div>
 
         {/* Two Pricing Cards: $4.49 Starter vs $9.99 Pro Unlimited */}
@@ -109,16 +99,16 @@ export default function PricingPage() {
                 <span className="text-sm font-bold text-[#8A867D]">/ month</span>
               </div>
               <p className="text-xs text-[#8A867D] mb-8 font-medium">
-                Full unlimited access to all AI image prompts and standard video prompts.
+                Copy premium image prompts; free prompts and standard videos remain available to everyone.
               </p>
 
               <div className="space-y-3.5 text-xs text-[#1A1A1A] font-semibold border-t border-[#F0EDE6] pt-6">
                 {[
-                  { text: 'Copy & use ALL Image Prompts (Unlimited)', included: true },
-                  { text: 'Access standard Video Prompts', included: true },
+                  { text: 'Copy premium Image Prompts (Unlimited)', included: true },
+                  { text: 'Browse free Image & standard Video Prompts', included: true },
                   { text: 'One-click clipboard prompt copying', included: true },
                   { text: 'Advanced search, styles & ratio filters', included: true },
-                  { text: 'Weekly trending prompt updates', included: true },
+                  { text: 'Browse the current prompt collection', included: true },
                   { text: 'Pro Video Prompts (Requires $9.99 Pro)', included: false },
                   { text: 'AI Agent Skills (Requires $9.99 Pro)', included: false },
                 ].map((feat, i) => (
@@ -131,10 +121,11 @@ export default function PricingPage() {
             </div>
 
             <button
-              onClick={() => handleSelectPlan('Starter ($4.49/mo)')}
+              onClick={() => beginBilling('checkout', 'starter')}
+              disabled={working || !!currentUser && currentUser.membership !== 'free'}
               className="pill-btn w-full mt-10 py-3.5 rounded-full bg-[#101010] hover:bg-[#252525] text-white font-extrabold text-xs shadow-md transition-all"
             >
-              Get Starter Access ($4.49/mo)
+              {working ? 'Opening billing...' : currentUser?.membership !== 'free' && currentUser ? 'Manage current plan above' : 'Get Starter Access ($4.49/mo)'}
             </button>
           </div>
 
@@ -167,13 +158,12 @@ export default function PricingPage() {
               <div className="space-y-3.5 text-xs text-[#1A1A1A] font-semibold border-t border-[#F0EDE6] pt-6">
                 {[
                   'Unlimited copy on ALL Image Prompts',
-                  'Unlimited copy on ALL Video Prompts (including Pro & 4K)',
+                  'Unlimited copy on ALL Video Prompts (including Pro)',
                   'Full access to all Reusable AI Agent Skills',
-                  '1-click CLI & Web instruction pack install',
-                  'Download SKILL.md and JSON configs',
-                  'Commercial usage rights for agency & client work',
-                  'Early access to new Sora, Veo 3 & Opus model drops',
-                  'Cancel anytime with zero fees'
+                  'Copy CLI & Web instruction pack instructions',
+                  'Download available SKILL.md instruction packs',
+                  'Browse curated prompts and skills',
+                  'Manage subscription in the billing portal'
                 ].map((feat) => (
                   <div key={feat} className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-[#101010] shrink-0 mt-0.5" />
@@ -184,13 +174,16 @@ export default function PricingPage() {
             </div>
 
             <button
-              onClick={() => handleSelectPlan('Pro Unlimited ($9.99/mo)')}
+              onClick={() => beginBilling('checkout', 'pro')}
+              disabled={working || !!currentUser && currentUser.membership !== 'free'}
               className="pill-btn w-full mt-10 py-3.5 rounded-full bg-[#D8F651] hover:bg-[#C5E53E] text-[#101010] font-black text-xs shadow-lg transition-transform active:scale-95"
             >
-              Get Pro Unlimited ($9.99/mo)
+              {working ? 'Opening billing...' : currentUser?.membership !== 'free' && currentUser ? 'Manage current plan above' : 'Get Pro Unlimited ($9.99/mo)'}
             </button>
           </div>
         </div>
+
+        <p className="text-center text-xs text-[#8A867D] mb-10">Final price, taxes, billing interval and cancellation terms are shown at checkout. No access is granted until payment is confirmed.</p>
 
         {/* Pricing FAQ Section (Matching Reference 2 bottom) */}
         <div className="max-w-4xl mx-auto pt-12 border-t border-[#E8E4DA]">

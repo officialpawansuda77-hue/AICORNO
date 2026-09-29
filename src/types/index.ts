@@ -145,5 +145,7 @@ export interface UserProfile {
   avatar: string;
   role: 'user' | 'creator' | 'admin';
   is_pro: boolean;
+  membership: 'free' | 'starter' | 'pro';
+  has_billing_account?: boolean;
   joined_date: string;
 }

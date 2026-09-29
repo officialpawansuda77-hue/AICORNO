@@ -12,7 +12,7 @@ export const ADMIN_EMAIL = 'sudapawan301@gmail.com';
 export function isUserAdmin(user: { email?: string; role?: string } | null | undefined): boolean {
   if (!user || !user.email) return false;
   const cleanEmail = user.email.toLowerCase().trim();
-  return cleanEmail === ADMIN_EMAIL || cleanEmail.startsWith('sudapawan301@');
+  return cleanEmail === ADMIN_EMAIL;
 }
 
 /**
@@ -21,5 +21,5 @@ export function isUserAdmin(user: { email?: string; role?: string } | null | und
 export function isEmailAdmin(email?: string | null | undefined): boolean {
   if (!email) return false;
   const cleanEmail = email.toLowerCase().trim();
-  return cleanEmail === ADMIN_EMAIL || cleanEmail.startsWith('sudapawan301@');
+  return cleanEmail === ADMIN_EMAIL;
 }

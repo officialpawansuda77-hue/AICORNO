@@ -13,6 +13,7 @@ import {
 import { Prompt } from '@/types';
 import { useAppStore } from '@/lib/store';
 import { normalizeCategoryName } from '@/lib/categories';
+import { canCopyPrompt } from '@/lib/membership';
 import { parseMediaUrl } from '@/lib/mediaUtils';
 import confetti from 'canvas-confetti';
 
@@ -38,7 +39,7 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
     e.preventDefault();
 
     // Check if this is a Pro item and user is not pro/admin
-    if (prompt.is_pro && !currentUser?.is_pro && currentUser?.role !== 'admin') {
+    if (!canCopyPrompt(prompt, currentUser)) {
       openUpgradeModal({
         reason: 'pro_prompt',
         itemTitle: prompt.title,
