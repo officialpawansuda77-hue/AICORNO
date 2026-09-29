@@ -3,10 +3,15 @@ import type { Prompt, UserProfile } from '@/types';
 export type Plan = 'starter' | 'pro';
 export type Membership = 'free' | Plan;
 
-export const productIds = () => ({
-  starter: process.env.DODO_STARTER_PRODUCT_ID || process.env.NEXT_PUBLIC_DODO_STARTER_PRODUCT_ID,
-  pro: process.env.DODO_PRO_PRODUCT_ID || process.env.NEXT_PUBLIC_DODO_PRO_PRODUCT_ID,
-});
+export const productIds = () => {
+  const starterRaw = process.env.DODO_STARTER_PRODUCT_ID || process.env.NEXT_PUBLIC_DODO_STARTER_PRODUCT_ID;
+  const proRaw = process.env.DODO_PRO_PRODUCT_ID || process.env.NEXT_PUBLIC_DODO_PRO_PRODUCT_ID;
+
+  const starter = (starterRaw && starterRaw.startsWith('pdt_')) ? starterRaw : 'pdt_0NofwCD8d3x4QXYjW42NG';
+  const pro = (proRaw && proRaw.startsWith('pdt_')) ? proRaw : 'pdt_0NofwilzJhYCXKLZAcPoM';
+
+  return { starter, pro };
+};
 
 export interface SubscriptionRow {
   subscription_id: string;
