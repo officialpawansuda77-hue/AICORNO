@@ -7,6 +7,7 @@ import { Search, X, Video, Image as ImageIcon, Bot, Folder, ArrowRight, Loader2 
 import { useAppStore } from '@/lib/store';
 import { fetchPromptsFromDb } from '@/lib/supabaseService';
 import { CATEGORIES } from '@/data/categoriesModels';
+import { isCategoryMatch } from '@/lib/categories';
 import { Prompt } from '@/types';
 
 interface SearchModalProps {
@@ -99,7 +100,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   ).slice(0, 6);
 
   const getCategoryPromptCount = (category: (typeof CATEGORIES)[number]) =>
-    prompts.filter((prompt) => prompt.category === category.name).length;
+    prompts.filter((prompt) => isCategoryMatch(prompt.category, category.name) || isCategoryMatch(prompt.category, category.slug)).length;
 
   const handleSelect = (url: string) => {
     onClose();

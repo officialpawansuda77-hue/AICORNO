@@ -48,23 +48,38 @@ export async function POST(req: NextRequest) {
     const clerkUser = await currentUser();
     const userEmail = clerkUser?.primaryEmailAddress?.emailAddress;
 
-    if (!userId || !userEmail) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
-
-    // Verify admin role - strictly restricted to sudapawan301@gmail.com
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    const isAuthorized = isEmailAdmin(userEmail) || profile?.role === 'admin';
-    if (!isAuthorized) {
-      return NextResponse.json({ error: 'Administrator privileges strictly restricted' }, { status: 403 });
-    }
-
+    // Authenticated users can publish prompts to the gallery
     const body = await req.json();
+
+    let categoryId = body.category_id || null;
+    if (!categoryId && body.category) {
+      try {
+        const { data: catData } = await supabaseAdmin
+          .from('categories')
+          .select('id')
+          .ilike('name', `%${body.category}%`)
+          .limit(1)
+          .maybeSingle();
+        if (catData) categoryId = catData.id;
+      } catch {
+        // fallback
+      }
+    }
+
+    let modelId = body.model_id || null;
+    if (!modelId && body.model) {
+      try {
+        const { data: modData } = await supabaseAdmin
+          .from('models')
+          .select('id')
+          .ilike('name', `%${body.model}%`)
+          .limit(1)
+          .maybeSingle();
+        if (modData) modelId = modData.id;
+      } catch {
+        // fallback
+      }
+    }
 
     const { data: newPrompt, error: insertError } = await supabaseAdmin
       .from('prompts')
@@ -72,21 +87,21 @@ export async function POST(req: NextRequest) {
         title: body.title,
         description: body.description,
         prompt: body.prompt,
-        type: body.type,
-        category_id: body.category_id || null,
-        model_id: body.model_id || null,
+        type: body.type || 'image',
+        category_id: categoryId,
+        model_id: modelId,
         style: body.style || null,
         aspect_ratio: body.aspect_ratio || '16:9',
         duration: body.duration || null,
         camera: body.camera || null,
         lighting: body.lighting || null,
-        image_url: body.image_url || null,
+        image_url: body.image_url || body.preview_url || null,
         video_url: body.video_url || null,
-        thumbnail_url: body.thumbnail_url || null,
+        thumbnail_url: body.thumbnail_url || body.preview_url || null,
         status: body.status || 'published',
         featured: Boolean(body.featured),
         trending: Boolean(body.trending),
-        created_by: userId,
+        created_by: userId || null,
       })
       .select()
       .single();

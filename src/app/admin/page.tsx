@@ -43,6 +43,7 @@ import {
   Upload
 } from 'lucide-react';
 import { Prompt, Category, AIModel } from '@/types';
+import { parseMediaUrl } from '@/lib/mediaUtils';
 
 export default function AdminPanelPage() {
   const {
@@ -126,6 +127,7 @@ export default function AdminPanelPage() {
   const [formStyle, setFormStyle] = useState('Cinematic');
   const [formRatio, setFormRatio] = useState<'16:9' | '9:16' | '1:1' | '4:5' | '3:4'>('16:9');
   const [formPreview, setFormPreview] = useState('');
+  const [formVideoUrl, setFormVideoUrl] = useState('');
   const [formStatus, setFormStatus] = useState<'published' | 'draft' | 'archived'>('published');
   const [formIsPro, setFormIsPro] = useState(false);
   const [formIsFeatured, setFormIsFeatured] = useState(false);
@@ -178,6 +180,7 @@ export default function AdminPanelPage() {
     setFormStyle('Cinematic');
     setFormRatio('16:9');
     setFormPreview('');
+    setFormVideoUrl('');
     setFormStatus('published');
     setFormIsPro(false);
     setFormIsFeatured(false);
@@ -196,6 +199,7 @@ export default function AdminPanelPage() {
     setFormStyle(p.style);
     setFormRatio(p.aspect_ratio);
     setFormPreview(p.preview_url);
+    setFormVideoUrl(p.video_url || '');
     setFormStatus('published');
     setFormIsPro(p.is_pro);
     setFormIsFeatured(p.is_featured);
@@ -205,6 +209,11 @@ export default function AdminPanelPage() {
 
   const handleSavePrompt = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const parsedVid = formType === 'video' ? parseMediaUrl(formVideoUrl) : null;
+    const resolvedVideoUrl = formType === 'video' ? (parsedVid?.embedUrl || formVideoUrl || undefined) : undefined;
+    const resolvedPreview = formPreview || (parsedVid?.thumbnailUrl || undefined);
+
     if (editingPrompt) {
       await updatePrompt(editingPrompt.id, {
         title: formTitle,
@@ -215,7 +224,8 @@ export default function AdminPanelPage() {
         model: formModel,
         style: formStyle,
         aspect_ratio: formRatio,
-        preview_url: formPreview || editingPrompt.preview_url,
+        preview_url: resolvedPreview || editingPrompt.preview_url,
+        video_url: resolvedVideoUrl,
         is_pro: formIsPro,
         is_featured: formIsFeatured,
         is_trending: formIsTrending,
@@ -231,7 +241,8 @@ export default function AdminPanelPage() {
         model: formModel,
         style: formStyle,
         aspect_ratio: formRatio,
-        preview_url: formPreview || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop',
+        preview_url: resolvedPreview || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop',
+        video_url: resolvedVideoUrl,
         tags: ['curated', formCategory.toLowerCase()],
         author: {
           name: currentUser?.name || 'AICORN Staff',
@@ -894,10 +905,34 @@ export default function AdminPanelPage() {
                   </div>
                 </div>
 
+                {formType === 'video' && (
+                  <div className="p-3.5 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] space-y-2">
+                    <label className="block text-xs font-bold text-[#101010]">
+                      Google Drive Video Link / Video Stream URL
+                    </label>
+                    <input
+                      type="url"
+                      value={formVideoUrl}
+                      onChange={(e) => {
+                        setFormVideoUrl(e.target.value);
+                        const parsed = parseMediaUrl(e.target.value);
+                        if (parsed.isGoogleDrive && parsed.thumbnailUrl && !formPreview) {
+                          setFormPreview(parsed.thumbnailUrl);
+                        }
+                      }}
+                      placeholder="https://drive.google.com/file/d/1A2B3C.../view?usp=sharing"
+                      className="w-full px-4 py-2 rounded-xl bg-white border border-[#E8E4DA] text-xs text-[#101010]"
+                    />
+                    <p className="text-[11px] text-[#8A867D]">
+                      Upload to Google Drive and paste share link here. No storage limits.
+                    </p>
+                  </div>
+                )}
+
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-bold text-[#101010]">
-                      Supabase Storage Media URL
+                      {formType === 'video' ? 'Cover / Poster Thumbnail URL' : 'Supabase Storage Media URL'}
                     </label>
                     <label className="text-[11px] font-black text-[#101010] bg-[#D8F651] hover:bg-[#C5E53E] px-2.5 py-0.5 rounded-full cursor-pointer transition-colors flex items-center gap-1 shadow-2xs">
                       {isUploadingMedia ? (

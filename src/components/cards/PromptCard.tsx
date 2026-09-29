@@ -13,6 +13,7 @@ import {
 import { Prompt } from '@/types';
 import { useAppStore } from '@/lib/store';
 import { normalizeCategoryName } from '@/lib/categories';
+import { parseMediaUrl } from '@/lib/mediaUtils';
 import confetti from 'canvas-confetti';
 
 interface PromptCardProps {
@@ -92,7 +93,7 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
       {/* MEDIA PREVIEW CONTAINER */}
       <div className={`relative w-full overflow-hidden bg-[#EDEDEA] ${prompt.aspect_ratio === '9:16' ? 'aspect-[9/14]' : prompt.aspect_ratio === '4:5' ? 'aspect-[4/5]' : 'aspect-[16/10]'}`}>
         <img
-          src={prompt.preview_url}
+          src={prompt.preview_url || (prompt.type === 'video' ? parseMediaUrl(prompt.video_url).thumbnailUrl : '') || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop'}
           alt={prompt.title}
           className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
           loading={priority ? 'eager' : 'lazy'}

@@ -170,10 +170,8 @@ export async function fetchPromptsFromDb(params: FetchPromptsParams = {}): Promi
     }
 
     // Fetch the published catalog before client-side normalization/filtering.
-    // Applying range() first used to make a valid category look empty when
-    // the requested page contained records from another category.
-    query = query.range(0, 999);
-
+    // No range() here — we fetch all published rows so the merged
+    // static pool and pagination happen client-side.
     const { data, error } = await query;
 
     if (error) {
@@ -264,7 +262,9 @@ export async function fetchPromptsFromDb(params: FetchPromptsParams = {}): Promi
       } else if (sort === 'latest') {
         filteredResults.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       } else if (sort === 'trending') {
-        filteredResults.sort((a, b) => (b.is_trending ? 1 : 0) - (a.is_trending ? 1 : 0));
+        // Trending filter: only show trending prompts, sorted by copies (desc)
+        filteredResults = filteredResults.filter(p => p.is_trending);
+        filteredResults.sort((a, b) => b.copies - a.copies);
       } else if (sort === 'favorited') {
         filteredResults.sort((a, b) => b.favorites - a.favorites);
       } else {

@@ -24,6 +24,7 @@ import {
   adminCreatePromptInDb,
   adminUpdatePromptInDb,
   adminDeletePromptInDb,
+  mapDbPromptToUI,
 } from './supabaseService';
 
 export interface ToastItem {
@@ -38,7 +39,7 @@ interface AppContextType {
   prompts: Prompt[];
   isLoadingPrompts: boolean;
   getPromptById: (id: string) => Prompt | undefined;
-  addPrompt: (prompt: Omit<Prompt, 'id' | 'created_at' | 'copies' | 'favorites' | 'views'>) => Promise<void>;
+  addPrompt: (prompt: Omit<Prompt, 'id' | 'created_at' | 'copies' | 'favorites' | 'views'>) => Promise<Prompt>;
   updatePrompt: (id: string, updates: Partial<Prompt>) => Promise<void>;
   deletePrompt: (id: string) => Promise<void>;
   incrementCopies: (id: string) => void;
@@ -63,7 +64,7 @@ interface AppContextType {
 
   // User Submissions
   submissions: UserSubmission[];
-  addSubmission: (submission: Omit<UserSubmission, 'id' | 'created_at' | 'status'>) => Promise<void>;
+  addSubmission: (submission: Omit<UserSubmission, 'id' | 'created_at' | 'status'>) => Promise<Prompt>;
   updateSubmissionStatus: (id: string, status: 'approved' | 'rejected') => Promise<void>;
 
   // Recent Copies
@@ -120,17 +121,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ]);
 
         if (isMounted) {
-          const loadedPrompts = promptsRes?.prompts?.length
+          let localCustom: Prompt[] = [];
+          if (typeof window !== 'undefined') {
+            try {
+              localCustom = JSON.parse(localStorage.getItem('aicorn_local_prompts') || '[]');
+            } catch {
+              // ignore
+            }
+          }
+
+          const basePrompts = promptsRes?.prompts?.length
             ? promptsRes.prompts
             : [...IMAGE_PROMPTS, ...VIDEO_PROMPTS];
 
+          // Deduplicate prompts by ID, prioritizing newly created local prompts
+          const seen = new Set<string>();
+          const loadedPrompts: Prompt[] = [];
+          for (const p of [...localCustom, ...basePrompts]) {
+            if (!seen.has(p.id)) {
+              seen.add(p.id);
+              loadedPrompts.push(p);
+            }
+          }
+
           setPrompts(loadedPrompts);
+          // Full static dataset for accurate category counts (not limited to the
+          // 60-record fetched sample or the deduplicated displayed list).
+          const countPool = [...IMAGE_PROMPTS, ...VIDEO_PROMPTS];
           setCategories((cats && cats.length > 0 ? cats : DEFAULT_CATEGORIES).map((category) => ({
             ...category,
-            // Counts are derived from published records, never from the
-            // placeholder totals in the seed/category table.
-            prompt_count: loadedPrompts.filter((prompt) =>
-              isCategoryMatch(prompt.category, category.name) || isCategoryMatch(prompt.category, category.slug)
+            // Counts are derived from the full prompt dataset, never from the
+            // 60-record sample or the placeholder totals in the seed/category table.
+            // Use exact matching to avoid false positives from substring overlap.
+            prompt_count: countPool.filter((prompt) =>
+              prompt.category === category.name || prompt.category === category.slug
             ).length,
           })));
           if (mods && mods.length > 0) setModels(mods);
@@ -265,8 +289,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return prompts.find((p) => p.id === id);
   };
 
-  const addPrompt = async (data: Omit<Prompt, 'id' | 'created_at' | 'copies' | 'favorites' | 'views'>) => {
-    const createdDb = await adminCreatePromptInDb(data);
+  const addPrompt = async (data: Omit<Prompt, 'id' | 'created_at' | 'copies' | 'favorites' | 'views'>): Promise<Prompt> => {
+    let createdDb = await adminCreatePromptInDb(data);
+    if (!createdDb) {
+      try {
+        const res = await fetch('/api/prompts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        const resData = await res.json();
+        if (resData.prompt) {
+          createdDb = mapDbPromptToUI(resData.prompt);
+        }
+      } catch (err) {
+        console.warn('API prompt fallback notice:', err);
+      }
+    }
+
     const newPrompt: Prompt = createdDb || {
       ...data,
       id: `${data.type === 'video' ? 'vid' : 'img'}-${Date.now()}`,
@@ -276,8 +316,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       views: 1,
     };
 
-    setPrompts((prev) => [newPrompt, ...prev]);
-    addToast({ title: 'Prompt Created', message: `"${data.title}" added to gallery.`, type: 'success' });
+    setPrompts((prev) => [newPrompt, ...prev.filter((p) => p.id !== newPrompt.id)]);
+
+    // Persist newly created prompt to localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const existing = JSON.parse(localStorage.getItem('aicorn_local_prompts') || '[]');
+        const updated = [newPrompt, ...existing.filter((p: Prompt) => p.id !== newPrompt.id)];
+        localStorage.setItem('aicorn_local_prompts', JSON.stringify(updated.slice(0, 50)));
+      } catch {
+        // ignore
+      }
+    }
+
+    addToast({ title: 'Prompt Published!', message: `"${data.title}" is now live in the gallery.`, type: 'success' });
+    return newPrompt;
   };
 
   const updatePrompt = async (id: string, updates: Partial<Prompt>) => {
@@ -378,14 +431,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const isFavorite = (id: string) => favorites.includes(id);
 
   // Submissions (Supabase + Local)
-  const addSubmission = async (data: Omit<UserSubmission, 'id' | 'created_at' | 'status'>) => {
-    const newSub = await submitPromptToDb(data, currentUser?.id);
-    setSubmissions((prev) => [newSub, ...prev]);
-    addToast({
-      title: 'Prompt Submitted!',
-      message: 'Your prompt is stored in Supabase and pending review.',
-      type: 'success',
+  const addSubmission = async (data: Omit<UserSubmission, 'id' | 'created_at' | 'status'>): Promise<Prompt> => {
+    submitPromptToDb(data, currentUser?.id).catch(() => {});
+
+    // Automatically publish to live gallery so user sees it right away
+    const livePrompt = await addPrompt({
+      title: data.title,
+      type: (data.type === 'skill' ? 'image' : data.type) as 'image' | 'video',
+      prompt: data.prompt,
+      description: data.description,
+      category: data.category,
+      subcategory: 'Community',
+      model: data.model,
+      style: data.style || 'Photorealistic',
+      aspect_ratio: (data.aspect_ratio as any) || '16:9',
+      preview_url: data.preview_url,
+      video_url: data.type === 'video' ? (data.preview_url || undefined) : undefined,
+      tags: data.tags,
+      author: {
+        name: currentUser?.name || 'Creator',
+        handle: currentUser?.handle || '@creator',
+        avatar: currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
+      },
+      rating: 5.0,
+      is_pro: false,
+      is_featured: false,
+      is_trending: true,
     });
+
+    return livePrompt;
   };
 
   const updateSubmissionStatus = async (id: string, status: 'approved' | 'rejected') => {
