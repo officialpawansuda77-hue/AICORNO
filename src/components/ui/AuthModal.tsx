@@ -1,15 +1,34 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Sparkles, CheckCircle2 } from 'lucide-react';
 import { SignIn, SignUp } from '@clerk/nextjs';
 import { useAppStore } from '@/lib/store';
 
 export default function AuthModal() {
   const { isAuthModalOpen, setAuthModalOpen } = useAppStore();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [pendingPlan, setPendingPlan] = useState<'starter' | 'pro' | null>(null);
+
+  useEffect(() => {
+    if (isAuthModalOpen && typeof window !== 'undefined') {
+      const plan = localStorage.getItem('aicorn_pending_plan');
+      if (plan === 'starter' || plan === 'pro') {
+        setPendingPlan(plan);
+      } else {
+        setPendingPlan(null);
+      }
+    }
+  }, [isAuthModalOpen]);
 
   if (!isAuthModalOpen) return null;
+
+  const handleClearPendingPlan = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('aicorn_pending_plan');
+    }
+    setPendingPlan(null);
+  };
 
   return (
     <div
@@ -28,16 +47,39 @@ export default function AuthModal() {
           <X className="w-5 h-5" />
         </button>
 
+        {/* Selected Plan Banner if user chose Starter or Pro */}
+        {pendingPlan && (
+          <div className="mb-4 p-3 rounded-2xl bg-[#D8F651]/25 border border-[#D8F651] text-[#101010] text-xs flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#101010] shrink-0" />
+              <span className="leading-tight">
+                Selected: <strong>{pendingPlan === 'pro' ? 'Pro Unlimited ($9.99/mo)' : 'Starter ($4.49/mo)'}</strong>
+                <br />
+                <span className="text-[11px] text-[#666]">Sign in to proceed to Dodo checkout</span>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleClearPendingPlan}
+              className="text-[11px] font-bold text-[#101010] hover:underline shrink-0 bg-white/70 px-2 py-1 rounded-lg"
+            >
+              Continue Free
+            </button>
+          </div>
+        )}
+
         {/* Brand Icon & Heading */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#101010] text-[#D8F651] mb-3 shadow-md">
             <Sparkles className="w-6 h-6" />
           </div>
           <h3 className="text-2xl font-black text-[#1A1A1A] tracking-tight">
-            {mode === 'signin' ? 'Welcome back to AICORN' : 'Join AICORN Platform'}
+            {mode === 'signin' ? 'Welcome to AICORN' : 'Join AICORN Platform'}
           </h3>
-          <p className="text-sm text-[#8A867D] mt-1 font-medium">
-            Discover prompts, sync favorites in Supabase, and submit your skills.
+          <p className="text-xs sm:text-sm text-[#8A867D] mt-1 font-medium">
+            {pendingPlan
+              ? 'Complete sign in with Clerk to continue to secure checkout.'
+              : 'Discover prompts, sync favorites, and submit your skills.'}
           </p>
         </div>
 

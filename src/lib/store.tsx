@@ -81,11 +81,11 @@ interface AppContextType {
   isAuthModalOpen: boolean;
   setAuthModalOpen: (open: boolean) => void;
 
-  // Pro Upgrade Modal ($9.99/mo gate)
+  // Pro Upgrade Modal ($9.99/mo gate) & Plan Selection
   isUpgradeModalOpen: boolean;
   setUpgradeModalOpen: (open: boolean) => void;
-  upgradeModalContext: { reason: 'pro_prompt' | 'skill'; itemTitle?: string } | null;
-  openUpgradeModal: (context: { reason: 'pro_prompt' | 'skill'; itemTitle?: string }) => void;
+  upgradeModalContext: { reason: 'pro_prompt' | 'skill' | 'signin'; itemTitle?: string } | null;
+  openUpgradeModal: (context: { reason: 'pro_prompt' | 'skill' | 'signin'; itemTitle?: string }) => void;
 
   // Home Featured Prompts
   homeFeatured: { imagePromptId?: string; videoPromptId?: string; skillId?: string };
@@ -106,7 +106,7 @@ const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const { user, isLoaded: isUserLoaded, isSignedIn } = useUser();
-  const { signOut } = useAuth();
+  const { signOut, getToken } = useAuth();
   const { openSignIn, openSignUp } = useClerk();
 
   const [prompts, setPrompts] = useState<Prompt[]>([]);
@@ -124,7 +124,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Pro Upgrade Modal state
   const [isUpgradeModalOpen, setUpgradeModalOpen] = useState(false);
-  const [upgradeModalContext, setUpgradeModalContext] = useState<{ reason: 'pro_prompt' | 'skill'; itemTitle?: string } | null>(null);
+  const [upgradeModalContext, setUpgradeModalContext] = useState<{ reason: 'pro_prompt' | 'skill' | 'signin'; itemTitle?: string } | null>(null);
 
   // Home Featured Prompts
   const [homeFeatured, setHomeFeaturedState] = useState<{ imagePromptId?: string; videoPromptId?: string; skillId?: string }>({});
@@ -399,6 +399,59 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  // 2b. Auto-checkout watcher: If user selected Starter or Pro before signing in, redirect immediately to Dodo Payments
+  useEffect(() => {
+    if (!isUserLoaded || !isSignedIn || !user) return;
+    if (typeof window === 'undefined') return;
+
+    const pendingPlan = localStorage.getItem('aicorn_pending_plan');
+    if (pendingPlan === 'starter' || pendingPlan === 'pro') {
+      localStorage.removeItem('aicorn_pending_plan');
+      addToast({
+        title: `Activating ${pendingPlan === 'pro' ? 'Pro Unlimited ($9.99/mo)' : 'Starter ($4.49/mo)'}`,
+        message: 'Redirecting to secure Dodo Payments checkout...',
+        type: 'info',
+      });
+
+      void (async () => {
+        try {
+          let token: string | null = null;
+          try { token = await getToken(); } catch {}
+
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+
+          const res = await fetch('/api/billing/checkout', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              plan: pendingPlan,
+              userId: user.id,
+              email: user.primaryEmailAddress?.emailAddress,
+              name: user.fullName || user.firstName || user.primaryEmailAddress?.emailAddress,
+            }),
+          });
+          const data = await res.json();
+          if (data?.url) {
+            window.location.assign(data.url);
+          } else {
+            addToast({
+              title: 'Checkout notice',
+              message: data?.error || 'Could not start checkout automatically.',
+              type: 'error',
+            });
+          }
+        } catch (err: any) {
+          addToast({
+            title: 'Checkout error',
+            message: err?.message || 'Could not start checkout automatically.',
+            type: 'error',
+          });
+        }
+      })();
+    }
+  }, [isUserLoaded, isSignedIn, user?.id, addToast, getToken]);
+
   // Prompts operations
   const getPromptById = useCallback((id: string) => {
     return prompts.find((p) => p.id === id);
@@ -658,7 +711,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const isFavorite = useCallback((id: string) => favorites.includes(id), [favorites]);
 
   // Pro Upgrade Modal opener
-  const openUpgradeModal = useCallback((context: { reason: 'pro_prompt' | 'skill'; itemTitle?: string }) => {
+  const openUpgradeModal = useCallback((context: { reason: 'pro_prompt' | 'skill' | 'signin'; itemTitle?: string }) => {
     setUpgradeModalContext(context);
     setUpgradeModalOpen(true);
   }, []);

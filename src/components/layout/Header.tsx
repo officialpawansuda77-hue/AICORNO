@@ -25,7 +25,7 @@ import SearchModal from '@/components/ui/SearchModal';
 
 export default function Header() {
   const pathname = usePathname();
-  const { favorites, currentUser, logout, setAuthModalOpen } = useAppStore();
+  const { favorites, currentUser, logout, setAuthModalOpen, openUpgradeModal } = useAppStore();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isPromptsDropdownOpen, setIsPromptsDropdownOpen] = useState(false);
@@ -415,10 +415,10 @@ export default function Header() {
               </div>
             ) : (
               <button
-                onClick={() => setAuthModalOpen(true)}
+                onClick={() => openUpgradeModal({ reason: 'signin' })}
                 className="hidden sm:inline-flex bg-[#101010] hover:bg-[#252525] text-white font-bold text-xs px-4 py-2 rounded-full transition-transform active:scale-95"
               >
-                Sign In
+                Sign In / Join
               </button>
             )}
 
@@ -497,11 +497,11 @@ export default function Header() {
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
-                    setAuthModalOpen(true);
+                    openUpgradeModal({ reason: 'signin' });
                   }}
-                  className="text-[#101010] hover:underline"
+                  className="w-full py-2.5 rounded-full bg-[#101010] text-[#D8F651] font-bold text-xs shadow-xs text-center"
                 >
-                  Sign In
+                  Sign In / Choose Plan
                 </button>
               )}
             </div>
