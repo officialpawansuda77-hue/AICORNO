@@ -88,15 +88,12 @@ export default function Header() {
           {/* LEFT: AICORN Brand Logo */}
           <div className="flex items-center gap-6 shrink-0">
             <Link href="/" onClick={closeMenus} className="flex items-center gap-2.5 group">
-              {/* Minimalist Acorn Emblem */}
-              <div className="w-9 h-9 rounded-2xl bg-[#101010] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
-                <svg width="22" height="22" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M32 12V18" stroke="#D8F651" strokeWidth="4" strokeLinecap="round" />
-                  <path d="M19 22C19 20 20.8 18 23 18H41C43.2 18 45 20 45 22V23C45 23.6 44.6 24 44 24H20C19.4 24 19 23.6 19 23V22Z" fill="#D8F651" />
-                  <path d="M20 26C20 26 20.5 44 32 48C43.5 44 44 26 44 26H20Z" fill="#FF4B26" />
-                  <circle cx="32" cy="34" r="2.5" fill="#FFFFFF" />
-                </svg>
-              </div>
+              {/* Official AICORN Logo */}
+              <img
+                src="/logo.png"
+                alt="AICORN"
+                className="w-9 h-9 rounded-xl object-cover shadow-sm group-hover:scale-105 transition-transform"
+              />
               <div className="flex items-center">
                 <span className="text-xl font-black tracking-tight text-[#101010]">
                   AICORN

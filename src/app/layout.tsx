@@ -32,17 +32,17 @@ export const metadata: Metadata = {
     description: 'Curated AI image prompts, video prompts, and agent skills for creators.',
     url: 'https://aicorn-ai.vercel.app/',
     images: [{
-      url: '/images/porsche-neon-rain.jpg',
-      width: 1365,
-      height: 768,
-      alt: 'Porsche 911 GT3 in neon rain — AICORN prompt preview',
+      url: '/og-image.png',
+      width: 1024,
+      height: 1024,
+      alt: 'AICORN — Premium AI Prompt & Agent Skill Gallery',
     }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'AICORN — Premium AI Prompt & Agent Skill Gallery',
     description: 'Curated AI image prompts, video prompts, and agent skills for creators.',
-    images: ['/images/porsche-neon-rain.jpg'],
+    images: ['/og-image.png'],
   },
   keywords: [
     "AI prompts",
@@ -58,9 +58,12 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "AICORN Curators" }],
   icons: {
-    icon: '/favicon.svg',
-    shortcut: '/favicon.svg',
-    apple: '/favicon.svg',
+    icon: [
+      { url: '/favicon.png', type: 'image/png' },
+      { url: '/favicon.ico' },
+    ],
+    shortcut: '/favicon.png',
+    apple: '/apple-touch-icon.png',
   },
   alternates: {
     canonical: 'https://aicorn-ai.vercel.app',
@@ -79,7 +82,8 @@ export default function RootLayout({
     <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
       <html lang="en" className={`${nunito.variable} scroll-smooth`}>
         <head>
-          <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+          <link rel="icon" href="/favicon.png" type="image/png" />
+          <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         </head>
         <body className="min-h-screen flex flex-col bg-[#F7F4EE] text-[#1A1A1A] font-sans antialiased selection:bg-[#D8F651] selection:text-[#101010]">
           <ProvidersWrapper>{children}</ProvidersWrapper>

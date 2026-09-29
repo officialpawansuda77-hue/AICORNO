@@ -10,14 +10,11 @@ export default function Footer() {
           {/* Brand Info */}
           <div className="md:col-span-2 space-y-4">
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-[#D8F651] flex items-center justify-center">
-                <svg width="20" height="20" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M32 12V18" stroke="#101010" strokeWidth="4" strokeLinecap="round" />
-                  <path d="M19 22C19 20 20.8 18 23 18H41C43.2 18 45 20 45 22V23C45 23.6 44.6 24 44 24H20C19.4 24 19 23.6 19 23V22Z" fill="#101010" />
-                  <path d="M20 26C20 26 20.5 44 32 48C43.5 44 44 26 44 26H20Z" fill="#FF4B26" />
-                  <circle cx="32" cy="34" r="2.5" fill="#FFFFFF" />
-                </svg>
-              </div>
+              <img
+                src="/logo.png"
+                alt="AICORN"
+                className="w-8 h-8 rounded-xl object-cover shadow-sm"
+              />
               <span className="text-xl font-black tracking-tight text-white">
                 AICORN
               </span>
