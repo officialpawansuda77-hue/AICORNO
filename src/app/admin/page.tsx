@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import { Prompt, Category, AIModel } from '@/types';
 import { parseMediaUrl } from '@/lib/mediaUtils';
+import { AI_MODELS } from '@/data/categoriesModels';
 
 export default function AdminPanelPage() {
   const {
@@ -176,7 +177,7 @@ export default function AdminPanelPage() {
     setFormPrompt('');
     setFormDesc('');
     setFormCategory('Automotive');
-    setFormModel('Flux.1 Pro');
+    setFormModel('ChatGPT');
     setFormStyle('Cinematic');
     setFormRatio('16:9');
     setFormPreview('');
@@ -821,7 +822,16 @@ export default function AdminPanelPage() {
                     <label className="block text-xs font-bold text-[#101010] mb-1">Type</label>
                     <select
                       value={formType}
-                      onChange={(e) => setFormType(e.target.value as any)}
+                      onChange={(e) => {
+                        const newType = e.target.value as 'image' | 'video';
+                        setFormType(newType);
+                        const available = (dbModels.length > 0 ? dbModels : AI_MODELS).filter((m) =>
+                          newType === 'video' ? m.type === 'video' : m.type !== 'video'
+                        );
+                        if (!available.some((m) => m.name === formModel)) {
+                          setFormModel(newType === 'video' ? 'Kling 1.5' : 'ChatGPT');
+                        }
+                      }}
                       className="w-full px-3 py-2 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs font-bold"
                     >
                       <option value="image">Image</option>
@@ -872,9 +882,11 @@ export default function AdminPanelPage() {
                       onChange={(e) => setFormModel(e.target.value)}
                       className="w-full px-3 py-2 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs font-bold"
                     >
-                      {dbModels.map((m) => (
-                        <option key={m.id} value={m.name}>{m.name}</option>
-                      ))}
+                      {(dbModels.length > 0 ? dbModels : AI_MODELS)
+                        .filter((m) => (formType === 'video' ? m.type === 'video' : m.type !== 'video'))
+                        .map((m) => (
+                          <option key={m.id} value={m.name}>{m.name}</option>
+                        ))}
                     </select>
                   </div>
 

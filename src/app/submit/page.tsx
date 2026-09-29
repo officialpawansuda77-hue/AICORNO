@@ -31,7 +31,7 @@ export default function SubmitPromptPage() {
   const [description, setDescription] = useState('');
   const [prompt, setPrompt] = useState('');
   const [category, setCategory] = useState('Automotive');
-  const [model, setModel] = useState('Flux.1 Pro');
+  const [model, setModel] = useState('ChatGPT');
   const [style, setStyle] = useState('Cinematic');
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [duration, setDuration] = useState('8s');
@@ -260,7 +260,12 @@ export default function SubmitPromptPage() {
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => setType('image')}
+                onClick={() => {
+                  setType('image');
+                  if (!AI_MODELS.filter((m) => m.type !== 'video').some((m) => m.name === model)) {
+                    setModel('ChatGPT');
+                  }
+                }}
                 className={`py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold border transition-all ${
                   type === 'image'
                     ? 'bg-[#101010] text-[#D8F651] border-[#101010] shadow-sm'
@@ -273,7 +278,12 @@ export default function SubmitPromptPage() {
 
               <button
                 type="button"
-                onClick={() => setType('video')}
+                onClick={() => {
+                  setType('video');
+                  if (!AI_MODELS.filter((m) => m.type === 'video').some((m) => m.name === model)) {
+                    setModel('Kling 1.5');
+                  }
+                }}
                 className={`py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold border transition-all ${
                   type === 'video'
                     ? 'bg-[#101010] text-[#D8F651] border-[#101010] shadow-sm'
@@ -286,7 +296,10 @@ export default function SubmitPromptPage() {
 
               <button
                 type="button"
-                onClick={() => setType('skill')}
+                onClick={() => {
+                  setType('skill');
+                  setModel('Claude 3.5 Sonnet');
+                }}
                 className={`py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold border transition-all ${
                   type === 'skill'
                     ? 'bg-[#101010] text-[#D8F651] border-[#101010] shadow-sm'
@@ -370,12 +383,16 @@ export default function SubmitPromptPage() {
                 className="w-full px-3.5 py-2.5 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs font-bold text-[#101010] focus:outline-none"
               >
                 {type === 'video'
-                  ? ['Kling 1.5', 'Veo 3', 'Runway Gen-3', 'Sora', 'Luma Dream Machine', 'Pika 2.0', 'Hailuo MiniMax'].map((m) => (
-                      <option key={m} value={m}>{m}</option>
-                    ))
-                  : AI_MODELS.map((m) => (
+                  ? AI_MODELS.filter((m) => m.type === 'video').map((m) => (
                       <option key={m.id} value={m.name}>{m.name}</option>
-                    ))}
+                    ))
+                  : type === 'skill'
+                    ? ['Claude 3.5 Sonnet', 'GPT-4o', 'DeepSeek R1', 'Gemini 2.0 Flash'].map((m) => (
+                        <option key={m} value={m}>{m}</option>
+                      ))
+                    : AI_MODELS.filter((m) => m.type !== 'video').map((m) => (
+                        <option key={m.id} value={m.name}>{m.name}</option>
+                      ))}
               </select>
             </div>
           </div>

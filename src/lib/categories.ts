@@ -8,60 +8,66 @@ export function normalizeCategoryName(raw?: string | null): string {
   if (!raw) return 'General';
   const clean = raw.trim().toLowerCase().replace(/-/g, ' ');
 
-  if (clean.includes('anime') || clean.includes('illustration') || clean.includes('ghibli')) {
+  // Exact slug or name match first, before substring rules
+  const exact = CATEGORIES.find(
+    (c) => c.slug.toLowerCase() === clean || c.name.toLowerCase() === clean
+  );
+  if (exact) return exact.name;
+
+  // Helper for whole-word matching against the normalized input
+  const hasWord = (word: string) =>
+    new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(clean);
+
+  if (hasWord('anime') || hasWord('illustration') || hasWord('ghibli')) {
     return 'Anime & Illustration';
   }
-  if (clean.includes('fashion') || clean.includes('editorial') || clean.includes('couture')) {
+  if (hasWord('fashion') || hasWord('editorial') || hasWord('couture')) {
     return 'Fashion & Editorial';
   }
-  if (clean.includes('ugc') || clean.includes('tiktok')) {
+  if (hasWord('ugc') || hasWord('tiktok')) {
     return 'UGC & TikTok';
   }
-  if (clean.includes('food') || clean.includes('beverage') || clean.includes('culinary') || clean.includes('gastronomy')) {
+  if (hasWord('food') || hasWord('beverage') || hasWord('culinary') || hasWord('gastronomy')) {
     return 'Food & Beverage';
   }
-  if (clean.includes('cinema') || clean.includes('film') || clean.includes('movie')) {
+  if (hasWord('cinema') || hasWord('film') || hasWord('movie')) {
     return 'Cinematic & Film';
   }
-  if (clean.includes('beauty') || clean.includes('skin') || clean.includes('cosmetic')) {
+  if (hasWord('beauty') || hasWord('skin') || hasWord('cosmetic')) {
     return 'Beauty & Skincare';
   }
-  if (clean.includes('fitness') || clean.includes('sport') || clean.includes('athlete')) {
+  if (hasWord('fitness') || hasWord('sport') || hasWord('athlete')) {
     return 'Fitness & Sports';
   }
-  if (clean.includes('travel') || clean.includes('nature') || clean.includes('landscape')) {
+  if (hasWord('travel') || hasWord('nature') || hasWord('landscape')) {
     return 'Travel & Nature';
   }
-  if (clean.includes('luxury') || clean.includes('jewelry') || clean.includes('watch') || clean.includes('horology')) {
+  if (hasWord('luxury') || hasWord('jewelry') || hasWord('watch') || hasWord('horology')) {
     return 'Luxury & Jewelry';
   }
-  if (clean === '3d' || clean.includes('3d') || clean.includes('motion') || clean.includes('render')) {
+  if (clean === '3d' || hasWord('3d') || hasWord('motion') || hasWord('render')) {
     return '3D & Motion';
   }
-  if (clean.includes('auto') || clean.includes('car') || clean.includes('supercar')) {
+  if (hasWord('auto') || hasWord('car') || hasWord('supercar')) {
     return 'Automotive';
   }
-  if (clean.includes('product') || clean.includes('commercial')) {
+  if (hasWord('product') || hasWord('commercial')) {
     return 'Product Ads';
   }
-  if (clean.includes('arch') || clean.includes('villa') || clean.includes('interior')) {
+  if (hasWord('arch') || hasWord('villa') || hasWord('interior')) {
     return 'Architecture';
   }
-  if (clean.includes('estate') || clean.includes('penthouse') || clean.includes('realty')) {
+  if (hasWord('estate') || hasWord('penthouse') || hasWord('realty')) {
     return 'Real Estate';
   }
-  if (clean.includes('social') || clean.includes('media')) {
+  if (hasWord('social') || hasWord('media')) {
     return 'Social Media';
   }
-  if (clean.includes('e-comm') || clean.includes('ecomm') || clean.includes('ecommerce')) {
+  if (hasWord('e-comm') || hasWord('ecomm') || hasWord('ecommerce')) {
     return 'E-commerce';
   }
 
-  // Check matching slug or exact name
-  const found = CATEGORIES.find(
-    (c) => c.slug.toLowerCase() === clean || c.name.toLowerCase() === clean
-  );
-  return found ? found.name : raw;
+  return raw;
 }
 
 /**

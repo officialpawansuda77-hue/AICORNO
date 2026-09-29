@@ -44,14 +44,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-// Server-side / Admin Supabase client (using service role key if available)
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Server-side / Admin Supabase client (using service role key)
+const serviceRoleKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qenhhbGVsZ2d0bHhhb3h4amtrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDY0MjE5MCwiZXhwIjoyMTA2MjE4MTkwfQ.0lCc4mFp9xJoESSNAX3RR5mE9p1gYrzB6srbTdUuEHY';
 
-export const supabaseAdmin = serviceRoleKey
-  ? createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
-  : supabase;
+export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});

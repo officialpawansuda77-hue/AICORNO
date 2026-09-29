@@ -164,16 +164,22 @@ export const CATEGORIES: Category[] = [
 ];
 
 export const AI_MODELS: AIModel[] = [
-  { id: 'veo-3', name: 'Veo 3', type: 'video', badge: 'Google DeepMind', description: 'Next-gen high-definition cinematic video with natural physics and camera controls.', prompt_count: 3 },
+  // IMAGE MODELS
+  { id: 'chatgpt', name: 'ChatGPT', type: 'image', badge: 'OpenAI', description: 'Advanced conversational prompt following and conceptual image generation with DALL-E 3.', prompt_count: 2 },
+  { id: 'midjourney-v6', name: 'Midjourney v6.1', type: 'image', badge: 'Midjourney', description: 'Unrivaled aesthetic coherence, hyper-realistic textures, and artistic lighting.', prompt_count: 3 },
+  { id: 'flux-pro', name: 'Flux.1 Pro', type: 'image', badge: 'Black Forest Labs', description: 'Ultra-crisp anatomy, flawless typography rendering and photorealistic fidelity.', prompt_count: 2 },
+  { id: 'sdxl', name: 'Stable Diffusion XL', type: 'image', badge: 'Stability AI', description: 'High-resolution open weights image synthesis with vast community LoRAs.', prompt_count: 1 },
+  { id: 'ideogram-2', name: 'Ideogram 2.0', type: 'image', badge: 'Ideogram', description: 'World-class typography rendering and graphic design composition.', prompt_count: 1 },
+  { id: 'imagen-3', name: 'Google Imagen 3', type: 'image', badge: 'Google', description: 'Photorealistic details with rich textures, natural skin tones and lighting.', prompt_count: 0 },
+  { id: 'nano-banana', name: 'Nano Banana', type: 'image', badge: 'Aicorn Core', description: 'Fine-tuned commercial generation model optimized for high-converting social ads.', prompt_count: 1 },
+
+  // VIDEO MODELS
   { id: 'kling', name: 'Kling 1.5', type: 'video', badge: 'Kuaishou', description: 'Fluid realistic human motion and long video consistency.', prompt_count: 2 },
-  { id: 'sora', name: 'OpenAI Sora', type: 'video', badge: 'OpenAI', description: 'Massive world simulation with complex cinematic motion and temporal coherence.', prompt_count: 0 },
-  { id: 'midjourney-v6', name: 'Midjourney v6.1', type: 'image', badge: 'Midjourney', description: 'Unrivaled aesthetic coherence, hyper-realistic textures, and artistic lighting.', prompt_count: 2 },
-  { id: 'nano-banana', name: 'Nano Banana', type: 'multimodal', badge: 'Aicorn Core', description: 'Fine-tuned commercial generation model optimized for high-converting social ads.', prompt_count: 3 },
+  { id: 'veo-3', name: 'Veo 3', type: 'video', badge: 'Google DeepMind', description: 'Next-gen high-definition cinematic video with natural physics and camera controls.', prompt_count: 3 },
   { id: 'runway-gen3', name: 'Runway Gen-3 Alpha', type: 'video', badge: 'Runway', description: 'Expressive camera direction, photorealistic lighting and stylized VFX.', prompt_count: 1 },
-  { id: 'flux-pro', name: 'Flux.1 Pro', type: 'image', badge: 'Black Forest Labs', description: 'Ultra-crisp anatomy, flawless typography rendering and photorealistic fidelity.', prompt_count: 1 },
-  { id: 'gemini-2', name: 'Gemini 2.0 Flash', type: 'multimodal', badge: 'Google', description: 'Deep reasoning, precise structured output, and fast creative iterations.', prompt_count: 0 },
-  { id: 'seedance', name: 'Seedance', type: 'video', badge: 'ByteDance', description: 'Dynamic camera motion and fluid character dance choreography.', prompt_count: 0 },
+  { id: 'sora', name: 'OpenAI Sora', type: 'video', badge: 'OpenAI', description: 'Massive world simulation with complex cinematic motion and temporal coherence.', prompt_count: 1 },
+  { id: 'luma-dream', name: 'Luma Dream Machine', type: 'video', badge: 'Luma AI', description: 'High-speed cinematic camera moves and realistic character animation.', prompt_count: 0 },
   { id: 'hailuo', name: 'Hailuo MiniMax', type: 'video', badge: 'MiniMax', description: 'Hyper-smooth human expressions and camera dolly zooms.', prompt_count: 0 },
-  { id: 'claude-code', name: 'Claude Code / 3.7', type: 'agent', badge: 'Anthropic', description: 'SOTA agentic execution, comprehensive coding workflows, and autonomous research.', prompt_count: 0 },
-  { id: 'gpt-image', name: 'GPT Image Pro', type: 'image', badge: 'OpenAI', description: 'Accurate text generation inside images and conceptual prompt understanding.', prompt_count: 0 },
+  { id: 'seedance', name: 'Seedance', type: 'video', badge: 'ByteDance', description: 'Dynamic camera motion and fluid character dance choreography.', prompt_count: 0 },
+  { id: 'pika', name: 'Pika 2.0', type: 'video', badge: 'Pika Labs', description: 'Specialized video effects, object animation, and motion brush controls.', prompt_count: 0 },
 ];

@@ -563,26 +563,37 @@ export async function fetchModelsFromDb(): Promise<AIModel[]> {
     const { data, error } = await supabase.from('models').select('*').order('prompt_count', { ascending: false });
 
     if (!error && data && data.length > 0) {
-      return data.map((m) => {
-        const matchingPrompts = CANONICAL_PROMPTS.filter(
-          (prompt) => prompt.model.toLowerCase() === String(m.name || '').toLowerCase()
+      const mergedList: AIModel[] = data.map((m) => {
+        const fallback = FALLBACK_MODELS.find(
+          (fm) => fm.name.toLowerCase() === String(m.name || '').toLowerCase() || fm.id === m.slug
         );
-        const type = matchingPrompts.length > 0
-          ? matchingPrompts.every((prompt) => prompt.type === 'video')
-            ? 'video'
-            : matchingPrompts.every((prompt) => prompt.type === 'image')
-              ? 'image'
-              : 'multimodal'
-          : 'multimodal';
+        const nameLower = String(m.name || '').toLowerCase();
+        const isVideo = fallback
+          ? fallback.type === 'video'
+          : /kling|veo|runway|sora|luma|hailuo|seedance|pika|video/.test(nameLower);
+
+        const matchingPrompts = CANONICAL_PROMPTS.filter(
+          (prompt) => prompt.model.toLowerCase() === nameLower
+        );
+
         return {
-          id: m.slug,
+          id: m.slug || fallback?.id || nameLower.replace(/[^a-z0-9]/g, '-'),
           name: m.name,
-          type,
-          badge: 'AICORN Verified',
-          description: m.description || '',
-          prompt_count: matchingPrompts.length,
+          type: isVideo ? 'video' : 'image',
+          badge: fallback?.badge || 'AICORN Verified',
+          description: m.description || fallback?.description || '',
+          prompt_count: Math.max(m.prompt_count || 0, matchingPrompts.length, fallback?.prompt_count || 0),
         };
       });
+
+      // Ensure all fallback models (such as ChatGPT) are present
+      for (const fb of FALLBACK_MODELS) {
+        if (!mergedList.some((m) => m.name.toLowerCase() === fb.name.toLowerCase())) {
+          mergedList.push(fb);
+        }
+      }
+
+      return mergedList;
     }
   } catch (e) {
     // fallback
