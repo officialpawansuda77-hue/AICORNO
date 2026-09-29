@@ -44,8 +44,8 @@ export default function SubmitPromptPage() {
       if (data.url) {
         setPreviewUrl(data.url);
         addToast({
-          title: 'Uploaded to Cloudflare R2',
-          message: `Asset stored in R2 bucket (${(data.size / 1024).toFixed(1)} KB)`,
+          title: 'Uploaded to Supabase Storage',
+          message: `Asset stored in user-submissions (${(data.size / 1024).toFixed(1)} KB)`,
           type: 'success',
         });
       } else {
@@ -54,7 +54,7 @@ export default function SubmitPromptPage() {
     } catch (err: any) {
       addToast({
         title: 'Upload Failed',
-        message: err?.message || 'Could not upload to Cloudflare R2',
+        message: err?.message || 'Could not upload to Supabase Storage',
         type: 'error',
       });
     } finally {

@@ -87,8 +87,8 @@ export default function AdminPanelPage() {
       if (data.url) {
         setFormPreview(data.url);
         addToast({
-          title: 'Asset Uploaded to Cloudflare R2',
-          message: `Stored media in R2 bucket (${(data.size / 1024).toFixed(1)} KB)`,
+          title: 'Asset Uploaded to Supabase Storage',
+          message: `Stored in bucket "${data.bucket}" (${(data.size / 1024).toFixed(1)} KB)`,
           type: 'success',
         });
       } else {
@@ -97,7 +97,7 @@ export default function AdminPanelPage() {
     } catch (err: any) {
       addToast({
         title: 'Upload Failed',
-        message: err?.message || 'Could not upload to Cloudflare R2',
+        message: err?.message || 'Could not upload to Supabase Storage',
         type: 'error',
       });
     } finally {
@@ -752,8 +752,8 @@ export default function AdminPanelPage() {
 
               <div className="p-5 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA]">
                 <h4 className="text-xs font-bold uppercase text-[#8A867D] mb-1">Storage Strategy</h4>
-                <div className="text-2xl font-black text-[#101010]">Cloudflare R2</div>
-                <p className="text-xs text-[#0F5132] font-semibold mt-1">S3-Compatible Zero Egress Object Storage</p>
+                <div className="text-2xl font-black text-[#101010]">Supabase Storage</div>
+                <p className="text-xs text-[#0F5132] font-semibold mt-1">Native buckets: prompt-images, prompt-videos</p>
               </div>
 
               <div className="p-5 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA]">
@@ -773,7 +773,7 @@ export default function AdminPanelPage() {
               <div><span className="font-bold">Project URL:</span> {process.env.NEXT_PUBLIC_SUPABASE_URL || 'Configured in .env.local'}</div>
               <div><span className="font-bold">Database:</span> Supabase PostgreSQL with RLS Enabled</div>
               <div><span className="font-bold">Auth Provider:</span> Clerk (Supabase Third-Party Auth)</div>
-              <div><span className="font-bold">Media Storage:</span> Cloudflare R2 ({process.env.R2_BUCKET_NAME || 'aicorn-media'})</div>
+              <div><span className="font-bold">Media Storage:</span> Supabase Storage (prompt-images, prompt-videos, user-submissions)</div>
             </div>
           </div>
         )}
@@ -897,7 +897,7 @@ export default function AdminPanelPage() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-bold text-[#101010]">
-                      Cloudflare R2 Media URL
+                      Supabase Storage Media URL
                     </label>
                     <label className="text-[11px] font-black text-[#101010] bg-[#D8F651] hover:bg-[#C5E53E] px-2.5 py-0.5 rounded-full cursor-pointer transition-colors flex items-center gap-1 shadow-2xs">
                       {isUploadingMedia ? (
@@ -908,7 +908,7 @@ export default function AdminPanelPage() {
                       ) : (
                         <>
                           <Upload className="w-3 h-3 text-[#101010]" />
-                          <span>Upload to Cloudflare R2</span>
+                          <span>Upload to Supabase Storage</span>
                         </>
                       )}
                       <input
@@ -924,12 +924,12 @@ export default function AdminPanelPage() {
                     type="url"
                     value={formPreview}
                     onChange={(e) => setFormPreview(e.target.value)}
-                    placeholder="https://pub-your-id.r2.dev/..."
+                    placeholder="https://njzxalelggtlxaoxxjkk.supabase.co/storage/v1/object/public/prompt-images/..."
                     className="w-full px-4 py-2 rounded-2xl bg-[#F7F4EE] border border-[#E8E4DA] text-xs"
                   />
                   {isUploadingMedia && (
                     <p className="text-[11px] text-[#8A867D] mt-1 flex items-center gap-1">
-                      <Loader2 className="w-3 h-3 animate-spin text-[#101010]" /> Uploading media asset directly to Cloudflare R2...
+                      <Loader2 className="w-3 h-3 animate-spin text-[#101010]" /> Uploading media asset directly to Supabase Storage...
                     </p>
                   )}
                 </div>

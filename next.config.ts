@@ -29,7 +29,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "**.r2.dev",
+        hostname: "**.supabase.co",
       }
     ],
   },
