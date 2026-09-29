@@ -67,6 +67,9 @@ export const metadata: Metadata = {
   },
 };
 
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -80,6 +83,8 @@ export default function RootLayout({
         </head>
         <body className="min-h-screen flex flex-col bg-[#F7F4EE] text-[#1A1A1A] font-sans antialiased selection:bg-[#D8F651] selection:text-[#101010]">
           <ProvidersWrapper>{children}</ProvidersWrapper>
+          <Analytics />
+          <SpeedInsights />
         </body>
       </html>
     </ClerkProvider>

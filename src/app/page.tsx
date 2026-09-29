@@ -7,6 +7,7 @@ import {
   TrendingPromptsSection,
   PopularCategoriesSection,
 } from '@/components/home/HomeSections';
+import FAQSection from '@/components/home/FAQSection';
 import Link from 'next/link';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
 
@@ -60,6 +61,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* SECTION 6: FAQ ACCORDION */}
+      <FAQSection />
     </AppLayout>
   );
 }

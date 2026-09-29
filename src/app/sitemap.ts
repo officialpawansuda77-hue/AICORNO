@@ -18,6 +18,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/pricing',
     '/privacy',
     '/terms',
+    '/cookie-policy',
+    '/refund-policy',
   ];
 
   return [

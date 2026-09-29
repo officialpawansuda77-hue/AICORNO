@@ -563,6 +563,27 @@ export default function SubmitPromptPage() {
             />
           </div>
 
+          {/* Terms & Copyright Consent */}
+          <div className="flex items-start gap-2.5 pt-2">
+            <input
+              type="checkbox"
+              id="consent-check"
+              required
+              className="mt-1 w-4 h-4 rounded border-[#E8E4DA] text-[#101010] focus:ring-[#D8F651] cursor-pointer"
+            />
+            <label htmlFor="consent-check" className="text-xs text-[#8A867D] leading-relaxed cursor-pointer select-none">
+              I agree to the{' '}
+              <Link href="/terms" target="_blank" className="underline text-[#101010] font-bold">
+                Terms of Service
+              </Link>{' '}
+              and{' '}
+              <Link href="/privacy" target="_blank" className="underline text-[#101010] font-bold">
+                Privacy Policy
+              </Link>
+              , and confirm that I own or have legal rights to share this prompt and media without infringing third-party copyright.
+            </label>
+          </div>
+
           {/* Submit CTA */}
           <div className="pt-4 border-t border-[#F0EDE6]">
             <button

@@ -119,16 +119,64 @@ export default function Footer() {
                   Terms of Service
                 </Link>
               </li>
+              <li>
+                <Link href="/cookie-policy" className="hover:text-white transition-colors">
+                  Cookie Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/refund-policy" className="hover:text-white transition-colors">
+                  Refund Policy
+                </Link>
+              </li>
             </ul>
+
+            {/* Social profiles */}
+            <div className="pt-2">
+              <h5 className="text-[11px] uppercase tracking-wider font-bold text-white/50 mb-2">
+                Connect
+              </h5>
+              <div className="flex items-center gap-3">
+                <a
+                  href="https://x.com/Pawan0Suda"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-[#D8F651] hover:text-[#101010] text-white flex items-center justify-center transition-all text-xs font-black"
+                  aria-label="Follow Pawan Suda on X"
+                >
+                  X
+                </a>
+                <a
+                  href="https://www.instagram.com/mr_pawansuda_?stkn=MTcybXluN2JjajdvNA=="
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-[#D8F651] hover:text-[#101010] text-white flex items-center justify-center transition-all text-xs font-black"
+                  aria-label="Follow Pawan Suda on Instagram"
+                >
+                  IG
+                </a>
+                <a
+                  href="https://www.linkedin.com/in/pawan-suda-046923374?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-[#D8F651] hover:text-[#101010] text-white flex items-center justify-center transition-all text-xs font-black"
+                  aria-label="Connect with Pawan Suda on LinkedIn"
+                >
+                  IN
+                </a>
+              </div>
+            </div>
           </div>
 
         </div>
 
         {/* Bottom bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/50">
-          <p>© 2026 AICORN. All rights reserved. Visual discovery platform for AI creators.</p>
+          <p>© 2026 AICORN. Founded by Pawan Suda. All rights reserved.</p>
           <div className="flex items-center gap-4">
-            <span>Powered by SOTA Generative Models</span>
+            <a href="https://x.com/Pawan0Suda" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+              @Pawan0Suda
+            </a>
             <span>&bull;</span>
             <span className="text-[#D8F651] font-semibold">Zero AI Slop Guaranteed</span>
           </div>
