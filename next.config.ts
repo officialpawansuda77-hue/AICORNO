@@ -22,6 +22,14 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "avatar.vercel.sh",
+      },
+      {
+        protocol: "https",
+        hostname: "img.clerk.com",
+      },
+      {
+        protocol: "https",
+        hostname: "**.r2.dev",
       }
     ],
   },
