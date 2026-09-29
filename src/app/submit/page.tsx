@@ -7,6 +7,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useAppStore } from '@/lib/store';
 import { CATEGORIES, AI_MODELS } from '@/data/categoriesModels';
 import { parseMediaUrl } from '@/lib/mediaUtils';
+import { useUser } from '@clerk/nextjs';
 import {
   PlusCircle,
   Sparkles,
@@ -24,6 +25,7 @@ import {
 
 export default function SubmitPromptPage() {
   const router = useRouter();
+  const { user } = useUser();
   const { addPrompt, addSkill, addSubmission, currentUser, setAuthModalOpen, addToast } = useAppStore();
 
   const [type, setType] = useState<'image' | 'video' | 'skill'>('image');
@@ -144,6 +146,10 @@ export default function SubmitPromptPage() {
         return;
       }
 
+      const authorName = currentUser?.name || user?.fullName || (user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : '') || user?.username || 'Creator';
+      const authorHandle = currentUser?.handle || (user?.username ? `@${user.username}` : (user?.primaryEmailAddress?.emailAddress ? `@${user.primaryEmailAddress.emailAddress.split('@')[0]}` : '@creator'));
+      const authorAvatar = currentUser?.avatar || user?.imageUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop';
+
       const createdPrompt = await addPrompt({
         title,
         type: type as 'image' | 'video',
@@ -159,9 +165,9 @@ export default function SubmitPromptPage() {
         video_url: type === 'video' ? resolvedVideoUrl : undefined,
         tags: tags.length > 0 ? tags : ['community', 'ai'],
         author: {
-          name: currentUser.name || 'Creator',
-          handle: currentUser.handle || '@creator',
-          avatar: currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
+          name: authorName,
+          handle: authorHandle,
+          avatar: authorAvatar,
         },
         rating: 5.0,
         is_pro: false,
@@ -169,7 +175,7 @@ export default function SubmitPromptPage() {
         is_trending: true,
       });
 
-      // 2. Also register in submissions tracking
+      // 2. Also register in submissions tracking without duplicate live prompt creation
       try {
         await addSubmission({
           title,
@@ -182,7 +188,7 @@ export default function SubmitPromptPage() {
           aspect_ratio: aspectRatio,
           preview_url: resolvedPreviewUrl,
           tags: tags.length > 0 ? tags : ['community', 'ai'],
-          submitted_by: currentUser.email,
+          submitted_by: currentUser?.email || user?.primaryEmailAddress?.emailAddress || 'creator',
         });
       } catch {
         // Safe fallback

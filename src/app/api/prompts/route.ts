@@ -73,6 +73,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    let cameraVal = body.camera || null;
+    if (body.author && (body.author.name || body.author.avatar)) {
+      cameraVal = 'author:' + JSON.stringify({
+        name: body.author.name,
+        handle: body.author.handle,
+        avatar: body.author.avatar,
+        camera: body.camera || null,
+      });
+    }
+
+    const isValidUUID = body.created_by && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.created_by);
+
     const { data: newPrompt, error: insertError } = await supabaseAdmin
       .from('prompts')
       .insert({
@@ -85,7 +97,7 @@ export async function POST(req: NextRequest) {
         style: body.style || 'Photorealistic',
         aspect_ratio: body.aspect_ratio || '16:9',
         duration: body.duration || null,
-        camera: body.camera || null,
+        camera: cameraVal,
         lighting: body.lighting || null,
         image_url: body.image_url || body.preview_url || null,
         video_url: body.video_url || null,
@@ -96,7 +108,7 @@ export async function POST(req: NextRequest) {
         views_count: body.views_count ?? 1,
         copies_count: body.copies_count ?? 0,
         favorites_count: body.favorites_count ?? 0,
-        created_by: body.created_by || null,
+        created_by: isValidUUID ? body.created_by : null,
       })
       .select(`
         *,

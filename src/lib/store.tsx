@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useUser, useAuth, useClerk } from '@clerk/nextjs';
 import { Prompt, Skill, UserSubmission, UserProfile, Category, AIModel, BlogPostItem } from '@/types';
 import { isEmailAdmin } from './authUtils';
@@ -64,7 +64,7 @@ interface AppContextType {
 
   // User Submissions
   submissions: UserSubmission[];
-  addSubmission: (submission: Omit<UserSubmission, 'id' | 'created_at' | 'status'>) => Promise<Prompt>;
+  addSubmission: (submission: Omit<UserSubmission, 'id' | 'created_at' | 'status'>) => Promise<UserSubmission>;
   updateSubmissionStatus: (id: string, status: 'approved' | 'rejected') => Promise<void>;
 
   // Recent Copies
@@ -176,12 +176,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
           const basePrompts = promptsRes?.prompts || [];
 
-          // Deduplicate prompts by ID, prioritizing newly created local prompts
+          // Deduplicate prompts by ID and title+preview_url, prioritizing DB prompts
           const seen = new Set<string>();
+          const seenContent = new Set<string>();
           const loadedPrompts: Prompt[] = [];
-          for (const p of [...localCustom, ...basePrompts]) {
-            if (!seen.has(p.id)) {
+          for (const p of [...basePrompts, ...localCustom]) {
+            const contentKey = `${p.title.trim().toLowerCase()}::${p.preview_url}`;
+            if (!seen.has(p.id) && !seenContent.has(contentKey)) {
               seen.add(p.id);
+              seenContent.add(contentKey);
               loadedPrompts.push(p);
             }
           }
@@ -367,24 +370,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [isUserLoaded, isSignedIn, user]);
 
   // Toast handlers
-  const addToast = (toast: Omit<ToastItem, 'id'>) => {
+  const addToast = useCallback((toast: Omit<ToastItem, 'id'>) => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { ...toast, id }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3500);
-  };
+  }, []);
 
-  const removeToast = (id: string) => {
+  const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+  }, []);
 
   // Prompts operations
-  const getPromptById = (id: string) => {
+  const getPromptById = useCallback((id: string) => {
     return prompts.find((p) => p.id === id);
-  };
+  }, [prompts]);
 
-  const addPrompt = async (data: Omit<Prompt, 'id' | 'created_at' | 'copies' | 'favorites' | 'views'>): Promise<Prompt> => {
+  const addPrompt = useCallback(async (data: Omit<Prompt, 'id' | 'created_at' | 'copies' | 'favorites' | 'views'>): Promise<Prompt> => {
     let createdDb = await adminCreatePromptInDb(data);
     if (!createdDb) {
       try {
@@ -402,22 +405,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    const newPrompt: Prompt = createdDb || {
-      ...data,
-      id: `${data.type === 'video' ? 'vid' : 'img'}-${Date.now()}`,
-      created_at: new Date().toISOString().split('T')[0],
-      copies: 0,
-      favorites: 0,
-      views: 1,
+    const newPrompt: Prompt = {
+      ...(createdDb || data),
+      id: createdDb?.id || `${data.type === 'video' ? 'vid' : 'img'}-${Date.now()}`,
+      author: data.author || createdDb?.author || {
+        name: currentUser?.name || 'Creator',
+        handle: currentUser?.handle || '@creator',
+        avatar: currentUser?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop',
+      },
+      created_at: createdDb?.created_at || new Date().toISOString().split('T')[0],
+      copies: createdDb?.copies ?? 0,
+      favorites: createdDb?.favorites ?? 0,
+      views: createdDb?.views ?? 1,
     };
 
-    setPrompts((prev) => [newPrompt, ...prev.filter((p) => p.id !== newPrompt.id)]);
+    setPrompts((prev) => [
+      newPrompt,
+      ...prev.filter(
+        (p) =>
+          p.id !== newPrompt.id &&
+          !(p.title.trim().toLowerCase() === newPrompt.title.trim().toLowerCase() && p.preview_url === newPrompt.preview_url)
+      ),
+    ]);
 
     // Persist newly created prompt to localStorage
     if (typeof window !== 'undefined') {
       try {
         const existing = JSON.parse(localStorage.getItem('aicorn_local_prompts') || '[]');
-        const updated = [newPrompt, ...existing.filter((p: Prompt) => p.id !== newPrompt.id)];
+        const updated = [
+          newPrompt,
+          ...existing.filter(
+            (p: Prompt) =>
+              p.id !== newPrompt.id &&
+              !(p.title.trim().toLowerCase() === newPrompt.title.trim().toLowerCase() && p.preview_url === newPrompt.preview_url)
+          ),
+        ];
         localStorage.setItem('aicorn_local_prompts', JSON.stringify(updated.slice(0, 50)));
       } catch {
         // ignore
@@ -426,54 +448,59 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     addToast({ title: 'Prompt Published!', message: `"${data.title}" is now live in the gallery.`, type: 'success' });
     return newPrompt;
-  };
+  }, [currentUser, addToast]);
 
-  const updatePrompt = async (id: string, updates: Partial<Prompt>) => {
+  const updatePrompt = useCallback(async (id: string, updates: Partial<Prompt>) => {
     setPrompts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
     await adminUpdatePromptInDb(id, updates);
     addToast({ title: 'Prompt Updated', message: 'Changes saved to Supabase.', type: 'success' });
-  };
+  }, [addToast]);
 
-  const deletePrompt = async (id: string) => {
+  const deletePrompt = useCallback(async (id: string) => {
     setPrompts((prev) => prev.filter((p) => p.id !== id));
     await adminDeletePromptInDb(id);
     addToast({ title: 'Prompt Deleted', type: 'info' });
-  };
+  }, [addToast]);
 
-  const incrementCopies = (id: string) => {
-    const target = prompts.find((p) => p.id === id);
-    if (!target) return;
+  const incrementCopies = useCallback((id: string) => {
+    let copiedTitle = '';
+    let copiedType = 'image';
 
-    const newCopies = (target.copies || 0) + 1;
-
-    // Optimistic UI increment
     setPrompts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, copies: newCopies } : p))
+      prev.map((p) => {
+        if (p.id === id) {
+          copiedTitle = p.title;
+          copiedType = p.type;
+          const newCopies = (p.copies || 0) + 1;
+          if (typeof window !== 'undefined') {
+            try {
+              const stats = JSON.parse(localStorage.getItem('aicorn_prompt_stats') || '{}');
+              stats[id] = { ...stats[id], copies: newCopies };
+              localStorage.setItem('aicorn_prompt_stats', JSON.stringify(stats));
+
+              const localPrompts = JSON.parse(localStorage.getItem('aicorn_local_prompts') || '[]');
+              const updatedLocal = localPrompts.map((lp: Prompt) => (lp.id === id ? { ...lp, copies: newCopies } : lp));
+              localStorage.setItem('aicorn_local_prompts', JSON.stringify(updatedLocal));
+            } catch {}
+          }
+          return { ...p, copies: newCopies };
+        }
+        return p;
+      })
     );
 
-    setRecentCopies((prev) => [
-      { id, title: target.title, type: target.type, timestamp: Date.now() },
-      ...prev.filter((r) => r.id !== id).slice(0, 19),
-    ]);
-
-    // Persist copies count to localStorage so refresh keeps the count
-    if (typeof window !== 'undefined') {
-      try {
-        const stats = JSON.parse(localStorage.getItem('aicorn_prompt_stats') || '{}');
-        stats[id] = { ...stats[id], copies: newCopies };
-        localStorage.setItem('aicorn_prompt_stats', JSON.stringify(stats));
-
-        const localPrompts = JSON.parse(localStorage.getItem('aicorn_local_prompts') || '[]');
-        const updatedLocal = localPrompts.map((lp: Prompt) => (lp.id === id ? { ...lp, copies: newCopies } : lp));
-        localStorage.setItem('aicorn_local_prompts', JSON.stringify(updatedLocal));
-      } catch {}
+    if (copiedTitle) {
+      setRecentCopies((prev) => [
+        { id, title: copiedTitle, type: copiedType, timestamp: Date.now() },
+        ...prev.filter((r) => r.id !== id).slice(0, 19),
+      ]);
     }
 
-    // Record copy in Supabase
+    // Record copy in Supabase (via API endpoint with service role)
     recordPromptCopyInDb(id, currentUser?.id);
-  };
+  }, [currentUser?.id]);
 
-  const recordView = (id: string) => {
+  const recordView = useCallback((id: string) => {
     setPrompts((prev) =>
       prev.map((p) => {
         if (p.id === id) {
@@ -492,14 +519,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
 
     recordPromptViewInDb(id, currentUser?.id);
-  };
+  }, [currentUser?.id]);
 
   // Skills operations
-  const getSkillById = (id: string) => {
+  const getSkillById = useCallback((id: string) => {
     return skills.find((s) => s.id === id);
-  };
+  }, [skills]);
 
-  const addSkill = (data: Omit<Skill, 'id' | 'created_at' | 'installs'>) => {
+  const addSkill = useCallback((data: Omit<Skill, 'id' | 'created_at' | 'installs'>) => {
     const newSkill: Skill = {
       ...data,
       id: `skill-${Date.now()}`,
@@ -542,19 +569,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
     addToast({ title: 'Skill Added!', message: `"${data.title}" added to catalog.`, type: 'success' });
-  };
+  }, [currentUser?.email, addToast]);
 
-  const updateSkill = (id: string, updates: Partial<Skill>) => {
+  const updateSkill = useCallback((id: string, updates: Partial<Skill>) => {
     setSkills((prev) => prev.map((s) => (s.id === id ? { ...s, ...updates } : s)));
     addToast({ title: 'Skill Updated', type: 'success' });
-  };
+  }, [addToast]);
 
-  const deleteSkill = (id: string) => {
+  const deleteSkill = useCallback((id: string) => {
     setSkills((prev) => prev.filter((s) => s.id !== id));
     addToast({ title: 'Skill Deleted', type: 'info' });
-  };
+  }, [addToast]);
 
-  const incrementInstalls = (id: string) => {
+  const incrementInstalls = useCallback((id: string) => {
     const target = skills.find((s) => s.id === id);
     if (!target) return;
     setSkills((prev) =>
@@ -564,26 +591,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { id, title: target.title, type: 'skill', timestamp: Date.now() },
       ...prev.filter((r) => r.id !== id).slice(0, 19),
     ]);
-  };
+  }, [skills]);
 
   // Favorite toggle (Works for both logged-in users and guests, completely persistent across refreshes)
-  const toggleFavorite = async (id: string): Promise<boolean> => {
-    const exists = favorites.includes(id);
-    const nextFavorites = exists ? favorites.filter((f) => f !== id) : [...favorites, id];
-    setFavorites(nextFavorites);
+  const toggleFavorite = useCallback(async (id: string): Promise<boolean> => {
+    let nextStatus = false;
+    setFavorites((prev) => {
+      const exists = prev.includes(id);
+      nextStatus = !exists;
+      const nextFavorites = exists ? prev.filter((f) => f !== id) : [...prev, id];
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('aicorn_favorites', JSON.stringify(nextFavorites));
+        } catch {}
+      }
+      return nextFavorites;
+    });
 
-    // Save to localStorage immediately so refresh preserves favorites
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('aicorn_favorites', JSON.stringify(nextFavorites));
-      } catch {}
-    }
-
-    // Update prompt favorites count optimistically & persist in stats
     setPrompts((prev) =>
       prev.map((p) => {
         if (p.id === id) {
-          const newFavCount = Math.max(0, (p.favorites || 0) + (exists ? -1 : 1));
+          const newFavCount = Math.max(0, (p.favorites || 0) + (nextStatus ? 1 : -1));
           if (typeof window !== 'undefined') {
             try {
               const stats = JSON.parse(localStorage.getItem('aicorn_prompt_stats') || '{}');
@@ -597,31 +625,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       })
     );
 
-    if (exists) {
+    if (currentUser?.id) {
+      toggleFavoriteInDb(id, currentUser.id).catch(() => {});
+    }
+
+    if (!nextStatus) {
       addToast({ title: 'Removed from Favorites', type: 'info' });
-      if (currentUser?.id) {
-        toggleFavoriteInDb(id, currentUser.id).catch(() => {});
-      }
       return false;
     } else {
       addToast({ title: 'Saved to Favorites', type: 'success' });
-      if (currentUser?.id) {
-        toggleFavoriteInDb(id, currentUser.id).catch(() => {});
-      }
       return true;
     }
-  };
+  }, [currentUser?.id, addToast]);
 
-  const isFavorite = (id: string) => favorites.includes(id);
+  const isFavorite = useCallback((id: string) => favorites.includes(id), [favorites]);
 
   // Pro Upgrade Modal opener
-  const openUpgradeModal = (context: { reason: 'pro_prompt' | 'skill'; itemTitle?: string }) => {
+  const openUpgradeModal = useCallback((context: { reason: 'pro_prompt' | 'skill'; itemTitle?: string }) => {
     setUpgradeModalContext(context);
     setUpgradeModalOpen(true);
-  };
+  }, []);
 
   // Home Featured Prompts handler
-  const setHomeFeatured = (featured: { imagePromptId?: string; videoPromptId?: string; skillId?: string }) => {
+  const setHomeFeatured = useCallback((featured: { imagePromptId?: string; videoPromptId?: string; skillId?: string }) => {
     setHomeFeaturedState(featured);
     if (typeof window !== 'undefined') {
       try {
@@ -629,38 +655,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch {}
     }
     addToast({ title: 'Homepage Featured Updated', message: 'Homepage Explore cards updated with selected media.', type: 'success' });
-  };
+  }, [addToast]);
 
   // Dynamic Blog & Social Posts handlers
-  const addBlogPostItem = (item: Omit<BlogPostItem, 'id' | 'date'>) => {
+  const addBlogPostItem = useCallback((item: Omit<BlogPostItem, 'id' | 'date'>) => {
     const newItem: BlogPostItem = {
       ...item,
       id: `post-${Date.now()}`,
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     };
-    const updated = [newItem, ...blogPosts];
-    setBlogPosts(updated);
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('aicorn_blog_posts', JSON.stringify(updated));
-      } catch {}
-    }
+    setBlogPosts((prev) => {
+      const updated = [newItem, ...prev];
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('aicorn_blog_posts', JSON.stringify(updated));
+        } catch {}
+      }
+      return updated;
+    });
     addToast({ title: 'Update Published!', message: `"${item.title}" added to posts.`, type: 'success' });
-  };
+  }, [addToast]);
 
-  const deleteBlogPostItem = (id: string) => {
-    const updated = blogPosts.filter((p) => p.id !== id);
-    setBlogPosts(updated);
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('aicorn_blog_posts', JSON.stringify(updated));
-      } catch {}
-    }
+  const deleteBlogPostItem = useCallback((id: string) => {
+    setBlogPosts((prev) => {
+      const updated = prev.filter((p) => p.id !== id);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('aicorn_blog_posts', JSON.stringify(updated));
+        } catch {}
+      }
+      return updated;
+    });
     addToast({ title: 'Post Deleted', type: 'info' });
-  };
+  }, [addToast]);
 
   // Submissions (Supabase + Local)
-  const addSubmission = async (data: Omit<UserSubmission, 'id' | 'created_at' | 'status'>): Promise<Prompt> => {
+  const addSubmission = useCallback(async (data: Omit<UserSubmission, 'id' | 'created_at' | 'status'>) => {
     submitPromptToDb(data, currentUser?.id).catch(() => {});
 
     const newSub: UserSubmission = {
@@ -679,35 +709,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Automatically publish to live gallery so user sees it right away
-    const livePrompt = await addPrompt({
-      title: data.title,
-      type: (data.type === 'skill' ? 'image' : data.type) as 'image' | 'video',
-      prompt: data.prompt,
-      description: data.description,
-      category: data.category,
-      subcategory: 'Community',
-      model: data.model,
-      style: data.style || 'Photorealistic',
-      aspect_ratio: (data.aspect_ratio as any) || '16:9',
-      preview_url: data.preview_url,
-      video_url: data.type === 'video' ? (data.preview_url || undefined) : undefined,
-      tags: data.tags,
-      author: {
-        name: currentUser?.name || 'Creator',
-        handle: currentUser?.handle || '@creator',
-        avatar: currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
-      },
-      rating: 5.0,
-      is_pro: false,
-      is_featured: false,
-      is_trending: true,
-    });
+    return newSub;
+  }, [currentUser?.id]);
 
-    return livePrompt;
-  };
-
-  const updateSubmissionStatus = async (id: string, status: 'approved' | 'rejected') => {
+  const updateSubmissionStatus = useCallback(async (id: string, status: 'approved' | 'rejected') => {
     const target = submissions.find((s) => s.id === id);
     if (!target) return;
 
@@ -717,11 +722,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     await updateSubmissionStatusInDb(id, status);
 
-    // If approved, push to live prompts
-    if (status === 'approved' && target.type !== 'skill') {
+    if (status === 'approved') {
       await addPrompt({
         title: target.title,
-        type: target.type as 'image' | 'video',
+        type: (target.type === 'skill' ? 'image' : target.type) as 'image' | 'video',
         prompt: target.prompt,
         description: target.description,
         category: target.category,
@@ -734,7 +738,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         author: {
           name: currentUser?.name || 'Creator',
           handle: currentUser?.handle || '@creator',
-          avatar: currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
+          avatar: currentUser?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop',
         },
         rating: 5.0,
         is_pro: false,
@@ -747,22 +751,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       title: status === 'approved' ? 'Submission Approved!' : 'Submission Rejected',
       type: status === 'approved' ? 'success' : 'info',
     });
-  };
+  }, [submissions, addPrompt, currentUser, addToast]);
 
   // Clerk Auth Triggers
-  const login = () => {
+  const login = useCallback(() => {
     openSignIn();
-  };
+  }, [openSignIn]);
 
-  const loginWithGoogle = () => {
+  const loginWithGoogle = useCallback(() => {
     openSignIn();
-  };
+  }, [openSignIn]);
 
-  const signUp = () => {
+  const signUp = useCallback(() => {
     openSignUp();
-  };
+  }, [openSignUp]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await signOut();
     } catch (e) {
@@ -770,56 +774,98 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     setCurrentUser(null);
     addToast({ title: 'Signed Out', message: 'You are now browsing as guest.', type: 'info' });
-  };
+  }, [signOut, addToast]);
+
+  const contextValue = useMemo(() => ({
+    prompts,
+    isLoadingPrompts,
+    getPromptById,
+    addPrompt,
+    updatePrompt,
+    deletePrompt,
+    incrementCopies,
+    recordView,
+    categories,
+    models,
+    skills,
+    getSkillById,
+    addSkill,
+    updateSkill,
+    deleteSkill,
+    incrementInstalls,
+    favorites,
+    toggleFavorite,
+    isFavorite,
+    submissions,
+    addSubmission,
+    updateSubmissionStatus,
+    recentCopies,
+    currentUser,
+    isLoadingAuth,
+    login,
+    loginWithGoogle,
+    signUp,
+    logout,
+    isAuthModalOpen,
+    setAuthModalOpen,
+    isUpgradeModalOpen,
+    setUpgradeModalOpen,
+    upgradeModalContext,
+    openUpgradeModal,
+    homeFeatured,
+    setHomeFeatured,
+    blogPosts,
+    addBlogPostItem,
+    deleteBlogPostItem,
+    toasts,
+    addToast,
+    removeToast,
+  }), [
+    prompts,
+    isLoadingPrompts,
+    getPromptById,
+    addPrompt,
+    updatePrompt,
+    deletePrompt,
+    incrementCopies,
+    recordView,
+    categories,
+    models,
+    skills,
+    getSkillById,
+    addSkill,
+    updateSkill,
+    deleteSkill,
+    incrementInstalls,
+    favorites,
+    toggleFavorite,
+    isFavorite,
+    submissions,
+    addSubmission,
+    updateSubmissionStatus,
+    recentCopies,
+    currentUser,
+    isLoadingAuth,
+    login,
+    loginWithGoogle,
+    signUp,
+    logout,
+    isAuthModalOpen,
+    isUpgradeModalOpen,
+    upgradeModalContext,
+    openUpgradeModal,
+    homeFeatured,
+    setHomeFeatured,
+    blogPosts,
+    addBlogPostItem,
+    deleteBlogPostItem,
+    toasts,
+    addToast,
+    removeToast,
+  ]);
 
   return (
-    <AppContext.Provider
-      value={{
-        prompts,
-        isLoadingPrompts,
-        getPromptById,
-        addPrompt,
-        updatePrompt,
-        deletePrompt,
-        incrementCopies,
-        recordView,
-        categories,
-        models,
-        skills,
-        getSkillById,
-        addSkill,
-        updateSkill,
-        deleteSkill,
-        incrementInstalls,
-        favorites,
-        toggleFavorite,
-        isFavorite,
-        submissions,
-        addSubmission,
-        updateSubmissionStatus,
-        recentCopies,
-        currentUser,
-        isLoadingAuth,
-        login,
-        loginWithGoogle,
-        signUp,
-        logout,
-        isAuthModalOpen,
-        setAuthModalOpen,
-        isUpgradeModalOpen,
-        setUpgradeModalOpen,
-        upgradeModalContext,
-        openUpgradeModal,
-        homeFeatured,
-        setHomeFeatured,
-        blogPosts,
-        addBlogPostItem,
-        deleteBlogPostItem,
-        toasts,
-        addToast,
-        removeToast,
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

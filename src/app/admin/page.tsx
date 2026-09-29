@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useUser } from '@clerk/nextjs';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAppStore } from '@/lib/store';
 import { isUserAdmin, ADMIN_EMAIL } from '@/lib/authUtils';
@@ -49,6 +50,7 @@ import { parseMediaUrl } from '@/lib/mediaUtils';
 import { AI_MODELS } from '@/data/categoriesModels';
 
 export default function AdminPanelPage() {
+  const { user } = useUser();
   const {
     prompts: storePrompts,
     skills,
@@ -312,9 +314,9 @@ export default function AdminPanelPage() {
         video_url: resolvedVideoUrl,
         tags: ['curated', formCategory.toLowerCase()],
         author: {
-          name: currentUser?.name || 'AICORN Staff',
-          handle: currentUser?.handle || '@aicorn_curator',
-          avatar: currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
+          name: currentUser?.name || user?.fullName || (user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : '') || 'Pawan Suda',
+          handle: currentUser?.handle || (user?.username ? `@${user.username}` : '@pawansuda'),
+          avatar: currentUser?.avatar || user?.imageUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop',
         },
         rating: 5.0,
         is_pro: formIsPro,

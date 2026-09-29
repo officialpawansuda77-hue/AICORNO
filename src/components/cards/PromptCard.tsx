@@ -23,11 +23,15 @@ interface PromptCardProps {
 
 export default function PromptCard({ prompt, priority = false }: PromptCardProps) {
   const router = useRouter();
-  const { toggleFavorite, isFavorite, incrementCopies, addToast, openUpgradeModal, currentUser } = useAppStore();
+  const { prompts: storePrompts, toggleFavorite, isFavorite, incrementCopies, addToast, openUpgradeModal, currentUser } = useAppStore();
   const [copied, setCopied] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [localCopies, setLocalCopies] = useState<number | null>(null);
 
   const favorited = isFavorite(prompt.id);
+
+  const currentStorePrompt = storePrompts.find((p) => p.id === prompt.id);
+  const displayCopies = localCopies !== null ? localCopies : (currentStorePrompt?.copies ?? prompt.copies ?? 0);
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -47,6 +51,7 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
     }
 
     setCopied(true);
+    setLocalCopies(displayCopies + 1);
     incrementCopies(prompt.id);
     addToast({
       title: 'Prompt Copied!',
@@ -180,7 +185,7 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
         {/* Creator Handle Pill on bottom-left */}
         <div className="absolute bottom-3 left-3 z-10">
           <span className="bg-black/60 backdrop-blur-md text-white/95 text-[11px] font-semibold px-2 py-0.5 rounded-full">
-            {prompt.author?.handle || '@aicorn'}
+            {prompt.author?.handle || '@creator'}
           </span>
         </div>
       </div>
@@ -241,7 +246,7 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
 
           {/* Copies count & Views */}
           <div className="flex items-center gap-2 text-xs font-semibold text-[#8A867D]">
-            <span>{formatCount(prompt.copies)}{' '}copies</span>
+            <span>{formatCount(displayCopies)}{' '}copies</span>
           </div>
         </div>
 

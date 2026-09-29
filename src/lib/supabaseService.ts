@@ -56,6 +56,29 @@ export function mapDbPromptToUI(row: any): Prompt {
   const previewUrl = row.image_url || row.thumbnail_url || row.preview_url || '';
   const thumbnails = [row.image_url || row.preview_url, row.thumbnail_url].filter(Boolean);
 
+  let authorName = row.author_name;
+  let authorHandle = row.author_handle;
+  let authorAvatar = row.author_avatar;
+  let cameraVal = row.camera || 'Cinematic tracking shot';
+
+  if (typeof row.camera === 'string' && row.camera.startsWith('author:')) {
+    try {
+      const parsed = JSON.parse(row.camera.slice(7));
+      if (parsed.name) authorName = parsed.name;
+      if (parsed.handle) authorHandle = parsed.handle;
+      if (parsed.avatar) authorAvatar = parsed.avatar;
+      cameraVal = parsed.camera || 'Cinematic tracking shot';
+    } catch {
+      // ignore
+    }
+  }
+
+  if (row.author && typeof row.author === 'object') {
+    if (row.author.name) authorName = row.author.name;
+    if (row.author.handle) authorHandle = row.author.handle;
+    if (row.author.avatar) authorAvatar = row.author.avatar;
+  }
+
   return {
     id: row.id,
     title: row.title || 'Untitled Prompt',
@@ -68,7 +91,7 @@ export function mapDbPromptToUI(row: any): Prompt {
     style: row.style || 'Photorealistic',
     aspect_ratio: row.aspect_ratio || '16:9',
     duration: row.duration || (type === 'video' ? '8s' : undefined),
-    camera: row.camera || 'Cinematic tracking shot',
+    camera: cameraVal,
     lighting: row.lighting || 'Studio lighting',
     lens: row.lens || '50mm Prime f/1.8',
     composition: row.composition || 'Rule of thirds',
@@ -78,9 +101,9 @@ export function mapDbPromptToUI(row: any): Prompt {
     thumbnails: thumbnails.length > 0 ? thumbnails : [previewUrl],
     tags: tags.length > 0 ? tags : ['ai', 'creative'],
     author: {
-      name: row.author_name || 'AICORN Studio',
-      handle: row.author_handle || '@aicorn_curator',
-      avatar: row.author_avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
+      name: authorName || 'Creator',
+      handle: authorHandle || '@creator',
+      avatar: authorAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop',
     },
     copies: row.copies_count ?? row.copies ?? 0,
     favorites: row.favorites_count ?? row.favorites ?? 0,
@@ -188,7 +211,37 @@ export async function fetchPromptsFromDb(params: FetchPromptsParams = {}): Promi
     }
 
     if (data) {
-      const dbPrompts = data.map(mapDbPromptToUI);
+      let promptStats: Record<string, { copies?: number; views?: number; favorites?: number }> = {};
+      if (typeof window !== 'undefined') {
+        try {
+          promptStats = JSON.parse(localStorage.getItem('aicorn_prompt_stats') || '{}');
+        } catch {}
+      }
+
+      const seen = new Set<string>();
+      const dbPrompts = data
+        .map(mapDbPromptToUI)
+        .map((p) => {
+          const st = promptStats[p.id];
+          if (!st) return p;
+          return {
+            ...p,
+            copies: st.copies !== undefined ? st.copies : p.copies,
+            views: st.views !== undefined ? st.views : p.views,
+            favorites: st.favorites !== undefined ? st.favorites : p.favorites,
+          };
+        })
+        .filter((p) => {
+          const key = p.id;
+          const contentKey = `${p.title.trim().toLowerCase()}::${p.preview_url}`;
+          if (seen.has(key) || seen.has(contentKey)) {
+            return false;
+          }
+          seen.add(key);
+          seen.add(contentKey);
+          return true;
+        });
+
       let filteredResults = dbPrompts;
 
       // Type filter
@@ -399,30 +452,14 @@ export async function fetchPromptByIdFromDb(id: string): Promise<Prompt | undefi
 // 3. RECORD PROMPT COPY (Increments copies_count and inserts into prompt_copies)
 export async function recordPromptCopyInDb(promptId: string, userId?: string | null): Promise<void> {
   try {
-    // Insert into prompt_copies
-    await supabase.from('prompt_copies').insert({
-      prompt_id: promptId,
-      user_id: userId || null,
-    });
-
-    // Increment copies_count
-    try {
-      const { error: rpcErr } = await supabase.rpc('increment_copies', { p_id: promptId });
-      if (rpcErr) {
-        // Direct update fallback if RPC is not installed
-        const { data } = await supabase.from('prompts').select('copies_count').eq('id', promptId).single();
-        if (data) {
-          await supabase
-            .from('prompts')
-            .update({ copies_count: (data.copies_count || 0) + 1 })
-            .eq('id', promptId);
-        }
-      }
-    } catch {
-      // Ignore if fallback fails
+    if (typeof window !== 'undefined') {
+      fetch('/api/prompts/copy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promptId, userId }),
+      }).catch(() => {});
     }
   } catch (err) {
-    // Do not block UI if analytics fails
     console.warn('Copy event record error:', err);
   }
 }
@@ -440,19 +477,12 @@ export async function recordPromptViewInDb(
   viewedPromptSessions.add(sessionKey);
 
   try {
-    await supabase.from('prompt_views').insert({
-      prompt_id: promptId,
-      user_id: userId || null,
-      session_id: sessionId || 'web-session',
-    });
-
-    // Increment views_count
-    const { data } = await supabase.from('prompts').select('views_count').eq('id', promptId).single();
-    if (data) {
-      await supabase
-        .from('prompts')
-        .update({ views_count: (data.views_count || 0) + 1 })
-        .eq('id', promptId);
+    if (typeof window !== 'undefined') {
+      fetch('/api/prompts/view', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promptId, userId, sessionId }),
+      }).catch(() => {});
     }
   } catch (err) {
     // Silent fail

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
@@ -54,19 +54,19 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
 
-  // Load from Supabase if not immediately available
+  const viewRecordedRef = useRef(false);
+
+  // Sync prompt from store or database once
   useEffect(() => {
     let isMounted = true;
-    async function loadPrompt() {
-      const found = getPromptById(id);
-      if (found) {
-        if (isMounted) {
-          setPrompt(found);
-          setIsLoading(false);
-        }
-        return;
-      }
+    const found = getPromptById(id);
+    if (found) {
+      setPrompt(found);
+      setIsLoading(false);
+      return;
+    }
 
+    async function loadPrompt() {
       setIsLoading(true);
       const dbPrompt = await fetchPromptByIdFromDb(id);
       if (isMounted) {
@@ -78,11 +78,12 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
     return () => {
       isMounted = false;
     };
-  }, [id, prompts, getPromptById]);
+  }, [id, getPromptById]);
 
-  // Record view on mount (deduplicated)
+  // Record view on mount (strictly once per prompt id)
   useEffect(() => {
-    if (prompt?.id) {
+    if (prompt?.id && !viewRecordedRef.current) {
+      viewRecordedRef.current = true;
       recordView(prompt.id);
     }
   }, [prompt?.id, recordView]);
@@ -146,6 +147,7 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
     }
     setCopied(true);
     incrementCopies(prompt.id);
+    setPrompt((prev) => (prev ? { ...prev, copies: (prev.copies || 0) + 1 } : prev));
     addToast({
       title: 'Prompt copied to clipboard!',
       message: 'Recorded copy event in Supabase.',
@@ -165,6 +167,9 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
 
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const storePrompt = prompts.find((p) => p.id === prompt?.id);
+  const liveCopies = storePrompt?.copies ?? prompt?.copies ?? 0;
 
   const handleDownload = () => {
     const data = JSON.stringify(prompt, null, 2);
@@ -452,16 +457,16 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
 
               <div className="flex items-center gap-3 py-3 border-y border-[#F0EDE6] my-4">
                 <img
-                  src={prompt.author?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop'}
-                  alt={prompt.author?.name}
+                  src={prompt.author?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop'}
+                  alt={prompt.author?.name || 'Creator'}
                   className="w-10 h-10 rounded-full object-cover border border-[#E8E4DA]"
                 />
                 <div>
-                  <div className="text-xs font-bold text-[#101010]">{prompt.author?.name}</div>
-                  <div className="text-[11px] text-[#8A867D]">{prompt.author?.handle}</div>
+                  <div className="text-xs font-bold text-[#101010]">{prompt.author?.name || 'Creator'}</div>
+                  <div className="text-[11px] text-[#8A867D]">{prompt.author?.handle || '@creator'}</div>
                 </div>
                 <div className="ml-auto text-right">
-                  <div className="text-xs font-black text-[#101010]">{prompt.copies.toLocaleString()} copies</div>
+                  <div className="text-xs font-black text-[#101010]">{liveCopies.toLocaleString()} copies</div>
                   <div className="text-[11px] text-[#8A867D]">{prompt.views.toLocaleString()} views</div>
                 </div>
               </div>
