@@ -94,7 +94,7 @@ export function parseMediaUrl(rawUrl?: string | null): ParsedMedia {
       isDirectVideo: false,
       googleDriveId: driveId,
       embedUrl: `https://drive.google.com/file/d/${driveId}/preview`,
-      thumbnailUrl: `https://drive.google.com/thumbnail?id=${driveId}&sz=w1200`,
+      thumbnailUrl: `https://lh3.googleusercontent.com/d/${driveId}=w1000`,
       directStreamUrl: `https://drive.google.com/uc?export=download&id=${driveId}`,
     };
   }

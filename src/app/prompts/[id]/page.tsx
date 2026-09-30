@@ -314,12 +314,24 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
                             />
                           ) : (
                             <img
-                              src={mediaList[activeMediaIndex] || parsedVideo.thumbnailUrl || prompt.preview_url}
+                              src={mediaList[activeMediaIndex] || (parsedVideo.googleDriveId ? `https://lh3.googleusercontent.com/d/${parsedVideo.googleDriveId}=w1000` : parsedVideo.thumbnailUrl) || prompt.preview_url}
                               alt={prompt.title}
                               className="w-full h-full object-contain"
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src =
-                                  'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200&auto=format&fit=crop';
+                                const img = e.target as HTMLImageElement;
+                                if (parsedVideo.isGoogleDrive && parsedVideo.embedUrl) {
+                                  img.style.display = 'none';
+                                  const parent = img.parentElement;
+                                  if (parent && !parent.querySelector('iframe')) {
+                                    const iframe = document.createElement('iframe');
+                                    iframe.src = `${parsedVideo.embedUrl}?autoplay=0`;
+                                    iframe.className = 'w-full h-full border-0 pointer-events-none';
+                                    iframe.tabIndex = -1;
+                                    parent.appendChild(iframe);
+                                  }
+                                } else {
+                                  img.src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop';
+                                }
                               }}
                             />
                           )}

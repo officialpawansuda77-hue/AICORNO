@@ -132,12 +132,38 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
             return (
               <video
                 src={videoMediaUrl}
+                poster={imageSrc}
                 muted
                 loop
                 playsInline
                 preload="metadata"
                 className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
               />
+            );
+          }
+
+          if (prompt.type === 'video' && parsedVideo.isGoogleDrive && parsedVideo.googleDriveId) {
+            return (
+              <div className="relative w-full h-full bg-[#101010] flex items-center justify-center overflow-hidden">
+                <img
+                  src={`https://lh3.googleusercontent.com/d/${parsedVideo.googleDriveId}=w1000`}
+                  alt={prompt.title}
+                  className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                  loading={priority ? 'eager' : 'lazy'}
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    img.style.display = 'none';
+                    const parent = img.parentElement;
+                    if (parent && !parent.querySelector('iframe')) {
+                      const iframe = document.createElement('iframe');
+                      iframe.src = `${parsedVideo.embedUrl}?autoplay=0`;
+                      iframe.className = 'w-full h-full border-0 pointer-events-none';
+                      iframe.tabIndex = -1;
+                      parent.appendChild(iframe);
+                    }
+                  }}
+                />
+              </div>
             );
           }
 
@@ -148,8 +174,10 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
               className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
               loading={priority ? 'eager' : 'lazy'}
               onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop';
+                if ((e.target as HTMLImageElement).src !== 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop') {
+                  (e.target as HTMLImageElement).src =
+                    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop';
+                }
               }}
             />
           );

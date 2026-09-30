@@ -25,7 +25,7 @@ test('parseMediaUrl builds embedUrl and thumbnailUrl for Google Drive', () => {
   assert.ok(parsed.isGoogleDrive);
   assert.equal(parsed.googleDriveId, '1a2b3c4d5e6f7g8h9i0j_k-lmnop');
   assert.equal(parsed.embedUrl, 'https://drive.google.com/file/d/1a2b3c4d5e6f7g8h9i0j_k-lmnop/preview');
-  assert.equal(parsed.thumbnailUrl, 'https://drive.google.com/thumbnail?id=1a2b3c4d5e6f7g8h9i0j_k-lmnop&sz=w1200');
+  assert.equal(parsed.thumbnailUrl, 'https://lh3.googleusercontent.com/d/1a2b3c4d5e6f7g8h9i0j_k-lmnop=w1000');
 });
 
 test('parseMediaUrl recognizes YouTube links', () => {

@@ -199,8 +199,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
 
           const basePrompts = (promptsRes?.prompts && promptsRes.prompts.length > 0)
-            ? [...promptsRes.prompts, ...OPUS_5_5_VIDEOS]
-            : [...IMAGE_PROMPTS, ...VIDEO_PROMPTS, ...OPUS_5_5_VIDEOS];
+            ? promptsRes.prompts
+            : [];
 
           // Deduplicate prompts by ID and title+preview_url, prioritizing DB prompts
           const seen = new Set<string>();
@@ -235,7 +235,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             };
           });
 
-          // Load skills (SKILLS_DATA + local user skills)
+          // Load skills (only real user and admin uploaded skills, NO fake demo skills)
           let localSkills: Skill[] = [];
           if (typeof window !== 'undefined') {
             try {
@@ -244,7 +244,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               // ignore
             }
           }
-          const allSkills = [...localSkills, ...SKILLS_DATA];
+          const allSkills = [...localSkills];
           const seenSkills = new Set<string>();
           setSkills(allSkills.filter((s) => {
             if (seenSkills.has(s.id)) return false;

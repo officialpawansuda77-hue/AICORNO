@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Video, Image as ImageIcon, Bot, Flame, ChevronRight, Key } from 'lucide-react';
+import { ArrowRight, Video, Image as ImageIcon, Bot, Flame, ChevronRight, Key, Pause, Play } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { CATEGORIES } from '@/data/categoriesModels';
 import PromptCard from '@/components/cards/PromptCard';
@@ -23,10 +23,10 @@ export function ExploreSection() {
     prompts.find((p) => p.type === 'video' && (p.id === homeFeatured.videoPromptId || p.featured_on_home)) ||
     prompts.find((p) => p.type === 'video');
 
-  // Find real skill
+  // Find real skill (only real user uploaded skills, NO fake demo skills)
   const featuredSkill =
     skills.find((s) => s.id === homeFeatured.skillId) ||
-    skills[0];
+    skills.find((s) => !s.id.startsWith('skill-'));
 
   const imagePreview = featuredImagePrompt?.preview_url || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800&auto=format&fit=crop';
   
@@ -35,9 +35,19 @@ export function ExploreSection() {
   const parsedVideo = parseMediaUrl(videoMediaUrl || featuredVideoPrompt?.video_url);
   const videoThumb = !isDirectVideoUrl(featuredVideoPrompt?.preview_url) && featuredVideoPrompt?.preview_url
     ? featuredVideoPrompt.preview_url
-    : (parsedVideo.thumbnailUrl || 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800&auto=format&fit=crop');
+    : (parsedVideo.thumbnailUrl || (parsedVideo.googleDriveId ? `https://lh3.googleusercontent.com/d/${parsedVideo.googleDriveId}=w1000` : '') || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop');
 
   const skillPreview = featuredSkill?.preview_image || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop';
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+
+  const toggleVideoPlay = () => {
+    if (videoRef.current) {
+      videoRef.current.paused ? videoRef.current.play() : videoRef.current.pause();
+      setIsPlaying(!isPlaying);
+    }
+  };
 
   return (
     <section className="py-16 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -51,11 +61,11 @@ export function ExploreSection() {
           </h2>
         </div>
         <p className="text-sm text-[#8A867D] max-w-md">
-          Three specialized libraries engineered for high aesthetic standards, commercial conversion, and autonomous AI execution.
+          Curated libraries engineered for high aesthetic standards, commercial conversion, and autonomous AI execution.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
+      <div className={`grid grid-cols-1 ${featuredSkill ? 'md:grid-cols-3' : 'md:grid-cols-2 max-w-5xl mx-auto'} gap-6 sm:gap-8`}>
         
         {/* Card 1: Image Prompts */}
         <div className="aicorn-card overflow-hidden flex flex-col justify-between group">
@@ -68,8 +78,10 @@ export function ExploreSection() {
               alt={featuredImagePrompt?.title || 'Visual Image Prompts'}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800&auto=format&fit=crop';
+                const fallback = 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800&auto=format&fit=crop';
+                if ((e.target as HTMLImageElement).src !== fallback) {
+                  (e.target as HTMLImageElement).src = fallback;
+                }
               }}
             />
             <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-1.5 z-10">
@@ -117,23 +129,61 @@ export function ExploreSection() {
             className="relative h-44 sm:h-52 md:h-64 overflow-hidden bg-[#EDEDEA] block cursor-pointer"
           >
             {isDirectVideo ? (
-              <video
-                src={videoMediaUrl}
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
+              <>
+                <video
+                  ref={videoRef}
+                  src={videoMediaUrl}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <button
+                  type="button"
+                  onClick={toggleVideoPlay}
+                  aria-label={isPlaying ? 'Pause video' : 'Play video'}
+                  className="absolute inset-0 flex items-center justify-center transition-opacity duration-200 pointer-events-none hover:pointer-events-auto hover:opacity-100 opacity-0 hover:opacity-70 bg-black/30 text-white rounded hover:bg-black/50"
+                >
+                  {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                </button>
+              </>
+            ) : parsedVideo.isGoogleDrive && parsedVideo.googleDriveId ? (
+              <div className="relative w-full h-full bg-[#101010] overflow-hidden flex items-center justify-center">
+                <img
+                  src={`https://lh3.googleusercontent.com/d/${parsedVideo.googleDriveId}=w1000`}
+                  alt={featuredVideoPrompt?.title || 'Drive Video'}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    img.style.display = 'none';
+                    const parent = img.parentElement;
+                    if (parent && !parent.querySelector('iframe')) {
+                      const iframe = document.createElement('iframe');
+                      iframe.src = `${parsedVideo.embedUrl}?autoplay=0`;
+                      iframe.className = 'w-full h-full border-0 pointer-events-none';
+                      iframe.tabIndex = -1;
+                      parent.appendChild(iframe);
+                    }
+                  }}
+                />
+                <div className="absolute inset-0 bg-black/25 flex items-center justify-center pointer-events-none group-hover:bg-black/10 transition-colors">
+                  <div className="w-12 h-12 rounded-full bg-black/70 backdrop-blur-md flex items-center justify-center text-[#D8F651] shadow-xl border border-white/20 group-hover:scale-110 transition-transform">
+                    <Play className="w-5 h-5 fill-[#D8F651] ml-0.5" />
+                  </div>
+                </div>
+              </div>
             ) : (
               <img
                 src={videoThumb}
                 alt={featuredVideoPrompt?.title || 'Cinematic Video Prompts'}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800&auto=format&fit=crop';
+                  const fallback = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop';
+                  if ((e.target as HTMLImageElement).src !== fallback) {
+                    (e.target as HTMLImageElement).src = fallback;
+                  }
                 }}
               />
             )}
@@ -175,58 +225,60 @@ export function ExploreSection() {
           </div>
         </div>
 
-        {/* Card 3: AI Agent Skills */}
-        <div className="aicorn-card overflow-hidden flex flex-col justify-between group">
-          <Link
-            href={featuredSkill ? `/skills/${featuredSkill.id}` : '/skills'}
-            className="relative h-44 sm:h-52 md:h-64 overflow-hidden bg-[#EDEDEA] block cursor-pointer"
-          >
-            <img
-              src={skillPreview}
-              alt={featuredSkill?.title || 'Agent Skills'}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop';
-              }}
-            />
-            <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-1.5 z-10">
-              <div className="bg-[#D8F651] text-[#101010] px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-black flex items-center gap-1.5 shadow-sm">
-                <Bot className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[#101010]" />
-                <span>AGENT SKILLS</span>
-              </div>
-              {featuredSkill?.is_pro && (
-                <div className="bg-[#101010]/90 text-[#D8F651] px-2 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 border border-[#D8F651]/40">
-                  <Key className="w-2.5 h-2.5" /> PRO
+        {/* Card 3: AI Agent Skills (ONLY rendered if a real skill has been created/uploaded) */}
+        {featuredSkill && (
+          <div className="aicorn-card overflow-hidden flex flex-col justify-between group">
+            <Link
+              href={`/skills/${featuredSkill.id}`}
+              className="relative h-44 sm:h-52 md:h-64 overflow-hidden bg-[#EDEDEA] block cursor-pointer"
+            >
+              <img
+                src={skillPreview}
+                alt={featuredSkill?.title || 'Agent Skills'}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                onError={(e) => {
+                  const fallback = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop';
+                  if ((e.target as HTMLImageElement).src !== fallback) {
+                    (e.target as HTMLImageElement).src = fallback;
+                  }
+                }}
+              />
+              <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-1.5 z-10">
+                <div className="bg-[#D8F651] text-[#101010] px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-black flex items-center gap-1.5 shadow-sm">
+                  <Bot className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[#101010]" />
+                  <span>AGENT SKILLS</span>
                 </div>
-              )}
-            </div>
-            {featuredSkill && (
+                {featuredSkill?.is_pro && (
+                  <div className="bg-[#101010]/90 text-[#D8F651] px-2 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 border border-[#D8F651]/40">
+                    <Key className="w-2.5 h-2.5" /> PRO
+                  </div>
+                )}
+              </div>
               <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 bg-black/70 backdrop-blur-sm text-white text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full max-w-[55%] truncate">
                 {featuredSkill.title}
               </div>
-            )}
-            <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 bg-black/80 text-white font-mono text-[10px] sm:text-xs px-2 py-0.5 rounded">
-              {featuredSkill?.compatible_agents?.[0] || 'Claude Code'}
-            </div>
-          </Link>
-          <div className="p-4 sm:p-6">
-            <h3 className="text-lg sm:text-xl font-black text-[#101010] mb-1 sm:mb-2 line-clamp-1">
-              {featuredSkill ? featuredSkill.title : 'Reusable AI Agent Skills'}
-            </h3>
-            <p className="text-xs sm:text-sm text-[#8A867D] mb-4 sm:mb-6 leading-relaxed line-clamp-2">
-              {featuredSkill?.description ||
-                'Executable multi-step instruction packs for Claude Code, Cursor, Codex, and Gemini CLI agents.'}
-            </p>
-            <Link
-              href={featuredSkill ? `/skills/${featuredSkill.id}` : '/skills'}
-              className="pill-btn w-full py-2.5 sm:py-3 bg-[#101010] hover:bg-[#252525] text-[#D8F651] font-extrabold text-xs sm:text-sm rounded-full flex items-center justify-center gap-2 shadow-sm"
-            >
-              <span>{featuredSkill ? 'Open Agent Skill' : 'Explore Skills'}</span>
-              <ArrowRight className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[#D8F651]" />
+              <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 bg-black/80 text-white font-mono text-[10px] sm:text-xs px-2 py-0.5 rounded">
+                {featuredSkill?.compatible_agents?.[0] || 'Claude Code'}
+              </div>
             </Link>
+            <div className="p-4 sm:p-6">
+              <h3 className="text-lg sm:text-xl font-black text-[#101010] mb-1 sm:mb-2 line-clamp-1">
+                {featuredSkill.title}
+              </h3>
+              <p className="text-xs sm:text-sm text-[#8A867D] mb-4 sm:mb-6 leading-relaxed line-clamp-2">
+                {featuredSkill?.description ||
+                  'Executable multi-step instruction packs for Claude Code, Cursor, Codex, and Gemini CLI agents.'}
+              </p>
+              <Link
+                href={`/skills/${featuredSkill.id}`}
+                className="pill-btn w-full py-2.5 sm:py-3 bg-[#101010] hover:bg-[#252525] text-[#D8F651] font-extrabold text-xs sm:text-sm rounded-full flex items-center justify-center gap-2 shadow-sm"
+              >
+                <span>Open Agent Skill</span>
+                <ArrowRight className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[#D8F651]" />
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
     </section>
