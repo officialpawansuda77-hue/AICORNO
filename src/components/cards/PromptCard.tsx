@@ -15,7 +15,7 @@ import { Prompt } from '@/types';
 import { useAppStore } from '@/lib/store';
 import { normalizeCategoryName } from '@/lib/categories';
 import { canCopyPrompt } from '@/lib/membership';
-import { parseMediaUrl } from '@/lib/mediaUtils';
+import { parseMediaUrl, isDirectVideoUrl } from '@/lib/mediaUtils';
 import confetti from 'canvas-confetti';
 
 interface PromptCardProps {
@@ -120,12 +120,40 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
             : 'aspect-[16/9]'
         }`}
       >
-        <img
-          src={prompt.preview_url || (prompt.type === 'video' ? parseMediaUrl(prompt.video_url).thumbnailUrl : '') || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop'}
-          alt={prompt.title}
-          className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-          loading={priority ? 'eager' : 'lazy'}
-        />
+        {(() => {
+          const videoMediaUrl = prompt.video_url || (prompt.type === 'video' && isDirectVideoUrl(prompt.preview_url) ? prompt.preview_url : undefined);
+          const isDirectVideo = Boolean(videoMediaUrl && isDirectVideoUrl(videoMediaUrl));
+          const parsedVideo = parseMediaUrl(videoMediaUrl || prompt.video_url);
+          const imageSrc = !isDirectVideoUrl(prompt.preview_url) && prompt.preview_url
+            ? prompt.preview_url
+            : parsedVideo.thumbnailUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop';
+
+          if (prompt.type === 'video' && isDirectVideo && !parsedVideo.thumbnailUrl) {
+            return (
+              <video
+                src={videoMediaUrl}
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+              />
+            );
+          }
+
+          return (
+            <img
+              src={imageSrc}
+              alt={prompt.title}
+              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+              loading={priority ? 'eager' : 'lazy'}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop';
+              }}
+            />
+          );
+        })()}
 
         {/* Favorite Icon Button Overlay */}
         <button

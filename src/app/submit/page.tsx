@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAppStore } from '@/lib/store';
 import { CATEGORIES, AI_MODELS } from '@/data/categoriesModels';
-import { parseMediaUrl } from '@/lib/mediaUtils';
+import { parseMediaUrl, isDirectVideoUrl } from '@/lib/mediaUtils';
 import { useUser } from '@clerk/nextjs';
 import {
   PlusCircle,
@@ -75,6 +75,9 @@ export default function SubmitPromptPage() {
       const data = await res.json();
       if (data.url) {
         setPreviewUrl(data.url);
+        if (type === 'video' || isDirectVideoUrl(data.url)) {
+          setVideoLink(data.url);
+        }
         addToast({
           title: 'Uploaded Successfully',
           message: `Asset saved to Supabase Storage (${(data.size / 1024).toFixed(1)} KB)`,
@@ -110,16 +113,21 @@ export default function SubmitPromptPage() {
         .filter(Boolean);
 
       // Determine video and preview assets
-      const resolvedVideoUrl = parsedVideo.embedUrl || videoLink.trim() || undefined;
+      const isDirectVid = isDirectVideoUrl(videoLink) || isDirectVideoUrl(previewUrl);
+      const effectiveVideoInput = videoLink.trim() || (isDirectVid ? previewUrl.trim() : '');
+      const parsedVid = parseMediaUrl(effectiveVideoInput);
+      const resolvedVideoUrl = type === 'video'
+        ? (parsedVid.embedUrl || effectiveVideoInput || undefined)
+        : undefined;
       let resolvedPreviewUrl = previewUrl.trim();
 
       if (!resolvedPreviewUrl) {
-        if (parsedVideo.isGoogleDrive && parsedVideo.thumbnailUrl) {
-          resolvedPreviewUrl = parsedVideo.thumbnailUrl;
-        } else if (parsedVideo.isYouTube && parsedVideo.thumbnailUrl) {
-          resolvedPreviewUrl = parsedVideo.thumbnailUrl;
+        if (parsedVid.isGoogleDrive && parsedVid.thumbnailUrl) {
+          resolvedPreviewUrl = parsedVid.thumbnailUrl;
+        } else if (parsedVid.isYouTube && parsedVid.thumbnailUrl) {
+          resolvedPreviewUrl = parsedVid.thumbnailUrl;
         } else if (type === 'video') {
-          resolvedPreviewUrl = 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=1000&auto=format&fit=crop';
+          resolvedPreviewUrl = resolvedVideoUrl || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=1000&auto=format&fit=crop';
         } else {
           resolvedPreviewUrl = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop';
         }

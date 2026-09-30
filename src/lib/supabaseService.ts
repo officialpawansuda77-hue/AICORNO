@@ -4,6 +4,7 @@ import { CATEGORIES as FALLBACK_CATEGORIES, AI_MODELS as FALLBACK_MODELS } from 
 import { IMAGE_PROMPTS } from '@/data/imagePrompts';
 import { VIDEO_PROMPTS } from '@/data/videoPrompts';
 import { normalizeCategoryName, isCategoryMatch } from './categories';
+import { isDirectVideoUrl } from './mediaUtils';
 
 // In-memory view deduplication set
 const viewedPromptSessions = new Set<string>();
@@ -97,7 +98,7 @@ export function mapDbPromptToUI(row: any): Prompt {
     composition: row.composition || 'Rule of thirds',
     mood: row.mood || 'Editorial & Prestigious',
     preview_url: previewUrl,
-    video_url: row.video_url || undefined,
+    video_url: row.video_url || (type === 'video' && isDirectVideoUrl(previewUrl) ? previewUrl : undefined),
     thumbnails: thumbnails.length > 0 ? thumbnails : [previewUrl],
     tags: tags.length > 0 ? tags : ['ai', 'creative'],
     author: {

@@ -10,6 +10,7 @@ import { VIDEO_PROMPTS } from '@/data/videoPrompts';
 import { OPUS_5_5_VIDEOS } from '@/data/opusVideosData';
 import { SKILLS_DATA } from '@/data/skillsData';
 import { CATEGORIES as DEFAULT_CATEGORIES, AI_MODELS as DEFAULT_MODELS } from '@/data/categoriesModels';
+import { isDirectVideoUrl } from './mediaUtils';
 import { supabase } from './supabase';
 import {
   fetchPromptsFromDb,
@@ -224,12 +225,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
           const finalPrompts = loadedPrompts.map((p) => {
             const st = promptStats[p.id];
-            if (!st) return p;
+            const recoveredVideoUrl = p.video_url || (p.type === 'video' && isDirectVideoUrl(p.preview_url) ? p.preview_url : undefined);
             return {
               ...p,
-              copies: st.copies !== undefined ? st.copies : p.copies,
-              views: st.views !== undefined ? st.views : p.views,
-              favorites: st.favorites !== undefined ? st.favorites : p.favorites,
+              video_url: recoveredVideoUrl,
+              copies: st?.copies !== undefined ? st.copies : p.copies,
+              views: st?.views !== undefined ? st.views : p.views,
+              favorites: st?.favorites !== undefined ? st.favorites : p.favorites,
             };
           });
 
@@ -514,9 +516,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    const resolvedVideo = data.video_url || (createdDb?.video_url) || (data.type === 'video' && isDirectVideoUrl(data.preview_url) ? data.preview_url : undefined);
+
     const newPrompt: Prompt = {
       ...(createdDb || data),
       id: createdDb?.id || `${data.type === 'video' ? 'vid' : 'img'}-${Date.now()}`,
+      video_url: resolvedVideo,
       author: data.author || createdDb?.author || {
         name: currentUser?.name || 'Creator',
         handle: currentUser?.handle || '@creator',

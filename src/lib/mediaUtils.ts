@@ -71,7 +71,10 @@ export function isDirectVideoUrl(rawUrl?: string | null): boolean {
     clean.endsWith('.m4v') ||
     clean.endsWith('.ogg') ||
     clean.includes('assets.mixkit.co') ||
-    clean.includes('prompt-videos')
+    clean.includes('prompt-videos') ||
+    clean.includes('/videos/') ||
+    clean.includes('/uploads/') && (clean.endsWith('.mp4') || clean.endsWith('.webm') || clean.endsWith('.mov')) ||
+    clean.startsWith('blob:')
   );
 }
 

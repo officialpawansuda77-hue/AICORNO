@@ -46,7 +46,7 @@ import {
   MessageSquareQuote,
 } from 'lucide-react';
 import { Prompt, Category, AIModel, UserSubmission } from '@/types';
-import { parseMediaUrl } from '@/lib/mediaUtils';
+import { parseMediaUrl, isDirectVideoUrl } from '@/lib/mediaUtils';
 import { AI_MODELS } from '@/data/categoriesModels';
 
 export default function AdminPanelPage() {
@@ -106,6 +106,9 @@ export default function AdminPanelPage() {
       const data = await res.json();
       if (data.url) {
         setFormPreview(data.url);
+        if (formType === 'video' || isDirectVideoUrl(data.url)) {
+          setFormVideoUrl(data.url);
+        }
         addToast({
           title: 'Asset Uploaded to Supabase Storage',
           message: `Stored in bucket "${data.bucket}" (${(data.size / 1024).toFixed(1)} KB)`,
@@ -249,9 +252,15 @@ export default function AdminPanelPage() {
   const handleSavePrompt = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const parsedVid = formType === 'video' ? parseMediaUrl(formVideoUrl) : null;
-    const resolvedVideoUrl = formType === 'video' ? (parsedVid?.embedUrl || formVideoUrl || undefined) : undefined;
-    const resolvedPreview = formPreview || (parsedVid?.thumbnailUrl || undefined);
+    const isDirectVid = isDirectVideoUrl(formVideoUrl) || isDirectVideoUrl(formPreview);
+    const effectiveVideoInput = formVideoUrl || (isDirectVid ? formPreview : '');
+    const parsedVid = formType === 'video' ? parseMediaUrl(effectiveVideoInput) : null;
+    const resolvedVideoUrl = formType === 'video'
+      ? (parsedVid?.embedUrl || effectiveVideoInput || undefined)
+      : undefined;
+    const resolvedPreview = (formPreview && !isDirectVideoUrl(formPreview))
+      ? formPreview
+      : (parsedVid?.thumbnailUrl || formPreview || undefined);
 
     if (formType === 'skill') {
       addSkill({

@@ -10,7 +10,7 @@ import { canCopyPrompt } from '@/lib/membership';
 import { fetchPromptByIdFromDb } from '@/lib/supabaseService';
 import { Prompt } from '@/types';
 import { isCategoryMatch, normalizeCategoryName } from '@/lib/categories';
-import { parseMediaUrl } from '@/lib/mediaUtils';
+import { parseMediaUrl, isDirectVideoUrl } from '@/lib/mediaUtils';
 import {
   ArrowLeft,
   Copy,
@@ -253,8 +253,11 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
                 <div className={`relative rounded-[28px] overflow-hidden bg-black border border-[#E8E4DA] shadow-lg group ${isVertical ? 'max-w-[440px] mx-auto' : 'w-full'}`}>
                   {prompt.type === 'video' ? (
                     (() => {
-                      const parsedVideo = parseMediaUrl(prompt.video_url || prompt.preview_url);
-                      const hasVideoSource = Boolean(parsedVideo.embedUrl || parsedVideo.isDirectVideo || prompt.video_url);
+                      const videoSrc = prompt.video_url || (isDirectVideoUrl(prompt.preview_url) ? prompt.preview_url : undefined);
+                      const parsedVideo = parseMediaUrl(videoSrc || prompt.video_url || prompt.preview_url);
+                      const hasVideoSource = Boolean(parsedVideo.embedUrl || parsedVideo.isDirectVideo || videoSrc);
+                      const isDirect = Boolean(parsedVideo.isDirectVideo || (videoSrc && isDirectVideoUrl(videoSrc)));
+                      const hasImageThumb = !isDirectVideoUrl(prompt.preview_url) && Boolean(prompt.preview_url || parsedVideo.thumbnailUrl);
 
                       if (isPlaying && hasVideoSource) {
                         if (parsedVideo.isGoogleDrive || parsedVideo.isYouTube) {
@@ -281,8 +284,8 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
                         return (
                           <div className={`relative ${mediaAspectClass} w-full bg-black`}>
                             <video
-                              src={parsedVideo.directStreamUrl || prompt.video_url}
-                              poster={mediaList[activeMediaIndex] || prompt.preview_url}
+                              src={parsedVideo.directStreamUrl || videoSrc || prompt.video_url || prompt.preview_url}
+                              poster={hasImageThumb ? (mediaList[activeMediaIndex] || prompt.preview_url) : undefined}
                               controls
                               autoPlay
                               playsInline
@@ -301,11 +304,25 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
 
                       return (
                         <div className={`relative ${mediaAspectClass} w-full bg-black flex items-center justify-center`}>
-                          <img
-                            src={mediaList[activeMediaIndex] || parsedVideo.thumbnailUrl || prompt.preview_url}
-                            alt={prompt.title}
-                            className="w-full h-full object-contain"
-                          />
+                          {isDirect && !hasImageThumb ? (
+                            <video
+                              src={videoSrc || prompt.preview_url}
+                              preload="metadata"
+                              muted
+                              playsInline
+                              className="w-full h-full object-contain"
+                            />
+                          ) : (
+                            <img
+                              src={mediaList[activeMediaIndex] || parsedVideo.thumbnailUrl || prompt.preview_url}
+                              alt={prompt.title}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src =
+                                  'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200&auto=format&fit=crop';
+                              }}
+                            />
+                          )}
 
                           {/* Google Drive Video Badge */}
                           {parsedVideo.isGoogleDrive && (
