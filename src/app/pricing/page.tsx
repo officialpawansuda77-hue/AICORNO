@@ -38,6 +38,11 @@ export default function PricingPage() {
   const { getToken } = useAuth();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [workingPlan, setWorkingPlan] = useState<'starter' | 'pro' | 'portal' | null>(null);
+  const [mobilePlanTab, setMobilePlanTab] = useState<'all' | 'free' | 'starter' | 'pro'>('all');
+
+  const isProActive = Boolean(currentUser && (currentUser.role === 'admin' || currentUser.is_pro || currentUser.membership === 'pro'));
+  const isStarterActive = Boolean(currentUser && !isProActive && currentUser.membership === 'starter');
+  const isFreeActive = Boolean(currentUser && !isProActive && !isStarterActive);
 
   const beginBilling = async (path: 'checkout' | 'portal', plan?: 'starter' | 'pro') => {
     if (!currentUser) {
@@ -91,16 +96,16 @@ export default function PricingPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-20">
         
         {/* Hero Section */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#101010] text-[#D8F651] text-xs font-black uppercase tracking-wider mb-6 shadow-sm">
             <Sparkles className="w-3.5 h-3.5 text-[#D8F651]" />
             <span>TRANSPARENT CREATOR PRICING</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-black text-[#101010] tracking-tight leading-[1.1]">
+          <h1 className="text-3xl sm:text-6xl font-black text-[#101010] tracking-tight leading-[1.1]">
             Keep your workflow <br />
             free of{' '}
             <span className="relative inline-block">
@@ -109,34 +114,87 @@ export default function PricingPage() {
             </span>
           </h1>
 
-          <p className="text-sm sm:text-base text-[#8A867D] mt-5 font-medium max-w-xl mx-auto leading-relaxed">
+          <p className="text-xs sm:text-base text-[#8A867D] mt-4 sm:mt-5 font-medium max-w-xl mx-auto leading-relaxed">
             Curated prompts with camera specs, Kelvin lighting values, and executable agent skills. Choose a plan or start for free.
           </p>
 
           {/* Active Subscription Banner */}
-          {currentUser && currentUser.membership !== 'free' && (
-            <div className="mt-8 inline-flex items-center gap-3 p-2.5 px-5 rounded-full bg-[#D8F651]/20 border border-[#D8F651] text-[#101010] text-xs font-bold">
-              <Zap className="w-4 h-4 text-[#101010]" />
+          {currentUser && (isProActive || isStarterActive) && (
+            <div className="mt-6 sm:mt-8 inline-flex items-center gap-2.5 p-2 sm:p-2.5 px-4 sm:px-5 rounded-full bg-[#D8F651]/20 border border-[#D8F651] text-[#101010] text-xs font-bold flex-wrap justify-center">
+              <Zap className="w-4 h-4 text-[#101010] shrink-0" />
               <span>
                 You are currently on the{' '}
-                <strong className="uppercase">{currentUser.membership === 'pro' ? 'Pro Unlimited ($9.99/mo)' : 'Starter ($4.49/mo)'}</strong> plan.
+                <strong className="uppercase">{isProActive ? 'Pro Unlimited ($9.99/mo)' : 'Starter ($4.49/mo)'}</strong> plan.
               </span>
               <button
                 onClick={() => beginBilling('portal')}
                 disabled={workingPlan !== null}
-                className="pill-btn ml-2 px-3.5 py-1 rounded-full bg-[#101010] text-[#D8F651] text-[11px] font-black hover:bg-[#202020] transition-colors"
+                className="pill-btn ml-1 px-3 py-1 rounded-full bg-[#101010] text-[#D8F651] text-[11px] font-black hover:bg-[#202020] transition-colors"
               >
-                {workingPlan === 'portal' ? 'Opening Portal...' : 'Manage Billing'}
+                {workingPlan === 'portal' ? 'Opening...' : 'Manage Billing'}
               </button>
             </div>
           )}
         </div>
 
+        {/* Mobile 3-Plan Compact Glance Strip (Allows seeing all 3 plans together on mobile) */}
+        <div className="md:hidden mb-6">
+          <div className="grid grid-cols-3 gap-2 p-1.5 bg-[#EAE6DC]/60 rounded-2xl border border-[#E8E4DA]">
+            <button
+              onClick={() => setMobilePlanTab(mobilePlanTab === 'free' ? 'all' : 'free')}
+              className={`p-2.5 rounded-xl text-center transition-all ${
+                mobilePlanTab === 'free'
+                  ? 'bg-white shadow-xs border border-[#101010]'
+                  : 'hover:bg-white/50'
+              }`}
+            >
+              <span className="text-[10px] font-black uppercase text-[#8A867D] block">Explorer</span>
+              <span className="text-base font-black text-[#101010] block leading-tight">$0</span>
+              <span className="text-[9px] text-[#8A867D] font-bold block">Free forever</span>
+            </button>
+            <button
+              onClick={() => setMobilePlanTab(mobilePlanTab === 'starter' ? 'all' : 'starter')}
+              className={`p-2.5 rounded-xl text-center transition-all ${
+                mobilePlanTab === 'starter'
+                  ? 'bg-white shadow-xs border border-[#101010]'
+                  : 'hover:bg-white/50'
+              }`}
+            >
+              <span className="text-[10px] font-black uppercase text-[#8A867D] block">Starter</span>
+              <span className="text-base font-black text-[#101010] block leading-tight">$4.49</span>
+              <span className="text-[9px] text-[#8A867D] font-bold block">Images Only</span>
+            </button>
+            <button
+              onClick={() => setMobilePlanTab(mobilePlanTab === 'pro' ? 'all' : 'pro')}
+              className={`p-2.5 rounded-xl text-center transition-all relative ${
+                mobilePlanTab === 'pro'
+                  ? 'bg-[#101010] text-[#D8F651] shadow-xs'
+                  : 'bg-[#D8F651]/50 text-[#101010] hover:bg-[#D8F651]/70'
+              }`}
+            >
+              <span className="text-[9px] font-black uppercase tracking-wider block">⭐ PRO</span>
+              <span className="text-base font-black block leading-tight">$9.99</span>
+              <span className="text-[9px] font-bold block opacity-90">All-Access</span>
+            </button>
+          </div>
+          <div className="flex items-center justify-between mt-2 px-1 text-[11px] text-[#8A867D]">
+            <span>Tap plan above to isolate, or view all:</span>
+            <button
+              onClick={() => setMobilePlanTab('all')}
+              className="text-[#101010] font-extrabold underline"
+            >
+              {mobilePlanTab === 'all' ? 'All 3 Plans Visible' : 'Show All 3'}
+            </button>
+          </div>
+        </div>
+
         {/* 3 Pricing Cards: Free vs Starter vs Pro Unlimited */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto mb-20 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-8 max-w-6xl mx-auto mb-20 items-stretch">
           
           {/* 1. Free Explorer ($0 / forever) */}
-          <div className="aicorn-card p-6 sm:p-8 flex flex-col justify-between relative bg-white border border-[#E8E4DA] hover:border-[#101010]/30 transition-all">
+          <div className={`aicorn-card p-4 sm:p-8 flex flex-col justify-between relative bg-white border border-[#E8E4DA] hover:border-[#101010]/30 transition-all ${
+            mobilePlanTab !== 'all' && mobilePlanTab !== 'free' ? 'hidden md:flex' : 'flex'
+          }`}>
             <div>
               <div className="flex items-center justify-between gap-2 mb-2">
                 <span className="text-xs font-black text-[#8A867D] uppercase tracking-wider block">
@@ -146,19 +204,19 @@ export default function PricingPage() {
                   Free forever
                 </span>
               </div>
-              <h3 className="text-2xl font-black text-[#101010] mb-3">
+              <h3 className="text-xl sm:text-2xl font-black text-[#101010] mb-2 sm:mb-3">
                 Community Explorer
               </h3>
 
               <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-4xl sm:text-5xl font-black text-[#101010]">$0</span>
-                <span className="text-sm font-bold text-[#8A867D]">/ forever</span>
+                <span className="text-3xl sm:text-5xl font-black text-[#101010]">$0</span>
+                <span className="text-xs sm:text-sm font-bold text-[#8A867D]">/ forever</span>
               </div>
-              <p className="text-xs text-[#8A867D] mb-6 font-medium leading-relaxed">
+              <p className="text-xs text-[#8A867D] mb-4 sm:mb-6 font-medium leading-relaxed">
                 Discover and copy standard curated prompts. Perfect for getting started.
               </p>
 
-              <div className="space-y-3 text-xs text-[#1A1A1A] font-semibold border-t border-[#F0EDE6] pt-6">
+              <div className="space-y-2 sm:space-y-3 text-xs text-[#1A1A1A] font-semibold border-t border-[#F0EDE6] pt-4 sm:pt-6">
                 {[
                   { text: 'Copy all Free Image & Video Prompts', included: true },
                   { text: '1-click clipboard prompt copying', included: true },
@@ -169,8 +227,8 @@ export default function PricingPage() {
                   { text: 'Pro Video Prompts (Requires Pro)', included: false },
                   { text: 'AI Agent Skills (Requires Pro)', included: false },
                 ].map((feat, i) => (
-                  <div key={i} className={`flex items-start gap-2.5 ${feat.included ? 'text-[#1A1A1A]' : 'text-[#8A867D]/50'}`}>
-                    <Check className={`w-4 h-4 shrink-0 mt-0.5 ${feat.included ? 'text-[#101010]' : 'text-[#8A867D]/30'}`} />
+                  <div key={i} className={`flex items-start gap-2 sm:gap-2.5 ${feat.included ? 'text-[#1A1A1A]' : 'text-[#8A867D]/50'}`}>
+                    <Check className={`w-3.5 sm:w-4 h-3.5 sm:h-4 shrink-0 mt-0.5 ${feat.included ? 'text-[#101010]' : 'text-[#8A867D]/30'}`} />
                     <span className={feat.included ? '' : 'line-through text-[#8A867D]/50'}>{feat.text}</span>
                   </div>
                 ))}
@@ -181,15 +239,17 @@ export default function PricingPage() {
               onClick={() => {
                 if (!currentUser) openUpgradeModal({ reason: 'signin' });
               }}
-              disabled={currentUser?.membership === 'free'}
-              className="pill-btn w-full mt-8 py-3.5 rounded-full bg-[#F7F4EE] hover:bg-[#EAE6DC] text-[#101010] font-extrabold text-xs transition-colors border border-[#E8E4DA] disabled:opacity-60"
+              disabled={isFreeActive || isProActive || isStarterActive}
+              className="pill-btn w-full mt-6 sm:mt-8 py-3 sm:py-3.5 rounded-full bg-[#F7F4EE] hover:bg-[#EAE6DC] text-[#101010] font-extrabold text-xs transition-colors border border-[#E8E4DA] disabled:opacity-60"
             >
-              {currentUser?.membership === 'free' ? 'Current Active Plan' : 'Start Free'}
+              {isFreeActive ? 'Current Active Plan' : isProActive || isStarterActive ? 'Included in Your Plan' : 'Start Free'}
             </button>
           </div>
 
           {/* 2. Starter Plan ($4.49/mo) */}
-          <div className="aicorn-card p-6 sm:p-8 flex flex-col justify-between relative bg-white border border-[#E8E4DA] hover:border-[#101010]/30 transition-all">
+          <div className={`aicorn-card p-4 sm:p-8 flex flex-col justify-between relative bg-white border border-[#E8E4DA] hover:border-[#101010]/30 transition-all ${
+            mobilePlanTab !== 'all' && mobilePlanTab !== 'starter' ? 'hidden md:flex' : 'flex'
+          }`}>
             <div>
               <div className="flex items-center justify-between gap-2 mb-2">
                 <span className="text-xs font-black text-[#8A867D] uppercase tracking-wider block">
@@ -199,19 +259,19 @@ export default function PricingPage() {
                   Cancel anytime
                 </span>
               </div>
-              <h3 className="text-2xl font-black text-[#101010] mb-3">
+              <h3 className="text-xl sm:text-2xl font-black text-[#101010] mb-2 sm:mb-3">
                 Starter Creator
               </h3>
 
               <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-4xl sm:text-5xl font-black text-[#101010]">$4.49</span>
-                <span className="text-sm font-bold text-[#8A867D]">/ month</span>
+                <span className="text-3xl sm:text-5xl font-black text-[#101010]">$4.49</span>
+                <span className="text-xs sm:text-sm font-bold text-[#8A867D]">/ month</span>
               </div>
-              <p className="text-xs text-[#8A867D] mb-6 font-medium leading-relaxed">
+              <p className="text-xs text-[#8A867D] mb-4 sm:mb-6 font-medium leading-relaxed">
                 Unlimited copy on all premium Image Prompts (Midjourney, Flux.1 Pro, Nano Banana).
               </p>
 
-              <div className="space-y-3 text-xs text-[#1A1A1A] font-semibold border-t border-[#F0EDE6] pt-6">
+              <div className="space-y-2 sm:space-y-3 text-xs text-[#1A1A1A] font-semibold border-t border-[#F0EDE6] pt-4 sm:pt-6">
                 {[
                   { text: 'Copy ALL Image Prompts (Unlimited)', included: true },
                   { text: 'Aspect ratios (16:9, 9:16, 1:1, 4:5)', included: true },
@@ -221,8 +281,8 @@ export default function PricingPage() {
                   { text: 'Pro Video Prompts (Requires Pro)', included: false },
                   { text: 'AI Agent Skills (Requires Pro)', included: false },
                 ].map((feat, i) => (
-                  <div key={i} className={`flex items-start gap-2.5 ${feat.included ? 'text-[#1A1A1A]' : 'text-[#8A867D]/50'}`}>
-                    <Check className={`w-4 h-4 shrink-0 mt-0.5 ${feat.included ? 'text-[#101010]' : 'text-[#8A867D]/30'}`} />
+                  <div key={i} className={`flex items-start gap-2 sm:gap-2.5 ${feat.included ? 'text-[#1A1A1A]' : 'text-[#8A867D]/50'}`}>
+                    <Check className={`w-3.5 sm:w-4 h-3.5 sm:h-4 shrink-0 mt-0.5 ${feat.included ? 'text-[#101010]' : 'text-[#8A867D]/30'}`} />
                     <span className={feat.included ? '' : 'line-through text-[#8A867D]/50'}>{feat.text}</span>
                   </div>
                 ))}
@@ -231,16 +291,18 @@ export default function PricingPage() {
 
             <button
               onClick={() => beginBilling('checkout', 'starter')}
-              disabled={workingPlan !== null || currentUser?.membership === 'starter'}
-              className="pill-btn w-full mt-8 py-3.5 rounded-full bg-[#101010] hover:bg-[#252525] text-white font-extrabold text-xs shadow-md transition-all disabled:opacity-50"
+              disabled={workingPlan !== null || isStarterActive || isProActive}
+              className="pill-btn w-full mt-6 sm:mt-8 py-3 sm:py-3.5 rounded-full bg-[#101010] hover:bg-[#252525] text-white font-extrabold text-xs shadow-md transition-all disabled:opacity-50"
             >
               {workingPlan === 'starter' ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span>Opening Dodo Checkout...</span>
                 </span>
-              ) : currentUser?.membership === 'starter' ? (
+              ) : isStarterActive ? (
                 'Current Active Plan'
+              ) : isProActive ? (
+                'Included in Pro Unlimited'
               ) : (
                 'Get Starter Access ($4.49/mo)'
               )}
@@ -248,7 +310,9 @@ export default function PricingPage() {
           </div>
 
           {/* 3. Pro Unlimited Plan ($9.99/mo - MOST POPULAR) */}
-          <div className="aicorn-card p-6 sm:p-8 flex flex-col justify-between relative bg-white border-2 border-[#101010] shadow-xl md:-translate-y-2">
+          <div className={`aicorn-card p-4 sm:p-8 flex flex-col justify-between relative bg-white border-2 border-[#101010] shadow-xl md:-translate-y-2 ${
+            mobilePlanTab !== 'all' && mobilePlanTab !== 'pro' ? 'hidden md:flex' : 'flex'
+          }`}>
             <div className="flex items-center justify-between gap-2 mb-2">
               <span className="text-xs font-black text-[#101010]">
                 Everything Unlimited
@@ -260,19 +324,19 @@ export default function PricingPage() {
             </div>
 
             <div>
-              <h3 className="text-2xl sm:text-3xl font-black text-[#101010] mb-3">
+              <h3 className="text-xl sm:text-3xl font-black text-[#101010] mb-2 sm:mb-3">
                 Pro Unlimited
               </h3>
 
               <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-4xl sm:text-5xl font-black text-[#101010]">$9.99</span>
-                <span className="text-sm font-bold text-[#8A867D]">/ month</span>
+                <span className="text-3xl sm:text-5xl font-black text-[#101010]">$9.99</span>
+                <span className="text-xs sm:text-sm font-bold text-[#8A867D]">/ month</span>
               </div>
-              <p className="text-xs text-[#8A867D] mb-6 font-medium leading-relaxed">
+              <p className="text-xs text-[#8A867D] mb-4 sm:mb-6 font-medium leading-relaxed">
                 Complete unrestricted access to all image prompts, Pro video prompts, and AI Agent Skills.
               </p>
 
-              <div className="space-y-3 text-xs text-[#1A1A1A] font-semibold border-t border-[#F0EDE6] pt-6">
+              <div className="space-y-2 sm:space-y-3 text-xs text-[#1A1A1A] font-semibold border-t border-[#F0EDE6] pt-4 sm:pt-6">
                 {[
                   'Unlimited copy on ALL Image Prompts',
                   'Unlimited copy on ALL Video Prompts (Veo 3, Kling, Sora)',
@@ -282,8 +346,8 @@ export default function PricingPage() {
                   'Early access to new Sora & Opus drops',
                   'Manage billing anytime in portal',
                 ].map((feat) => (
-                  <div key={feat} className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-[#101010] shrink-0 mt-0.5" />
+                  <div key={feat} className="flex items-start gap-2 sm:gap-2.5">
+                    <Check className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[#101010] shrink-0 mt-0.5" />
                     <span>{feat}</span>
                   </div>
                 ))}
@@ -292,15 +356,15 @@ export default function PricingPage() {
 
             <button
               onClick={() => beginBilling('checkout', 'pro')}
-              disabled={workingPlan !== null || currentUser?.membership === 'pro'}
-              className="pill-btn w-full mt-8 py-3.5 rounded-full bg-[#D8F651] hover:bg-[#C5E53E] text-[#101010] font-black text-xs shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+              disabled={workingPlan !== null || isProActive}
+              className="pill-btn w-full mt-6 sm:mt-8 py-3 sm:py-3.5 rounded-full bg-[#D8F651] hover:bg-[#C5E53E] text-[#101010] font-black text-xs shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {workingPlan === 'pro' ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span>Opening Dodo Checkout...</span>
                 </span>
-              ) : currentUser?.membership === 'pro' ? (
+              ) : isProActive ? (
                 'Current Active Plan'
               ) : (
                 <>

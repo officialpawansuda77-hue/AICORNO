@@ -10,14 +10,16 @@ import AuthModal from '@/components/ui/AuthModal';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import OnboardingSurveyModal from '@/components/ui/OnboardingSurveyModal';
 import CookieConsentBanner from '@/components/common/CookieConsentBanner';
+import MobileBottomNav from '@/components/layout/MobileBottomNav';
 
 export default function ProvidersWrapper({ children }: { children: React.ReactNode }) {
   return (
     <AppProvider>
       <AnnouncementBar />
       <Header />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 pb-16 lg:pb-0">{children}</main>
       <Footer />
+      <MobileBottomNav />
       <ToastContainer />
       <AuthModal />
       <UpgradeModal />

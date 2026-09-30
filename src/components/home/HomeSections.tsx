@@ -46,112 +46,112 @@ export function ExploreSection() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
         
         {/* Card 1: Image Prompts */}
         <div className="aicorn-card overflow-hidden flex flex-col justify-between group">
-          <div className="relative h-64 overflow-hidden bg-[#EDEDEA]">
+          <div className="relative h-44 sm:h-52 md:h-64 overflow-hidden bg-[#EDEDEA]">
             <img
               src={imagePreview}
               alt={featuredImagePrompt?.title || 'Visual Image Prompts'}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black text-[#101010] flex items-center gap-1.5 shadow-sm">
-              <ImageIcon className="w-3.5 h-3.5 text-[#101010]" />
+            <div className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-black text-[#101010] flex items-center gap-1.5 shadow-sm">
+              <ImageIcon className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[#101010]" />
               <span>IMAGE PROMPTS</span>
             </div>
             {featuredImagePrompt && (
-              <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full max-w-[85%] truncate">
+              <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 bg-black/70 backdrop-blur-sm text-white text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full max-w-[85%] truncate">
                 {featuredImagePrompt.title}
               </div>
             )}
           </div>
-          <div className="p-6">
-            <h3 className="text-xl font-black text-[#101010] mb-2">
+          <div className="p-4 sm:p-6">
+            <h3 className="text-lg sm:text-xl font-black text-[#101010] mb-1 sm:mb-2">
               Visual AI Image Prompts
             </h3>
-            <p className="text-xs sm:text-sm text-[#8A867D] mb-6 leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#8A867D] mb-4 sm:mb-6 leading-relaxed">
               Curated photorealistic, minimal, and editorial prompts for Midjourney, Flux.1 Pro, and Nano Banana.
             </p>
             <Link
               href="/prompts/image"
-              className="pill-btn w-full py-3 bg-[#101010] hover:bg-[#252525] text-[#D8F651] font-extrabold text-xs sm:text-sm rounded-full flex items-center justify-center gap-2 shadow-sm"
+              className="pill-btn w-full py-2.5 sm:py-3 bg-[#101010] hover:bg-[#252525] text-[#D8F651] font-extrabold text-xs sm:text-sm rounded-full flex items-center justify-center gap-2 shadow-sm"
             >
               <span>Explore Image Prompts</span>
-              <ArrowRight className="w-4 h-4 text-[#D8F651]" />
+              <ArrowRight className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[#D8F651]" />
             </Link>
           </div>
         </div>
 
         {/* Card 2: Video Prompts */}
         <div className="aicorn-card overflow-hidden flex flex-col justify-between group">
-          <div className="relative h-64 overflow-hidden bg-[#EDEDEA]">
+          <div className="relative h-44 sm:h-52 md:h-64 overflow-hidden bg-[#EDEDEA]">
             <img
               src={videoPreview}
               alt={featuredVideoPrompt?.title || 'Cinematic Video Prompts'}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            <div className="absolute top-4 left-4 bg-[#101010] px-3 py-1 rounded-full text-xs font-black text-[#D8F651] flex items-center gap-1.5 shadow-sm">
-              <Video className="w-3.5 h-3.5 text-[#D8F651]" />
+            <div className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-[#101010] px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-black text-[#D8F651] flex items-center gap-1.5 shadow-sm">
+              <Video className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[#D8F651]" />
               <span>VIDEO PROMPTS</span>
             </div>
             {featuredVideoPrompt && (
-              <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full max-w-[85%] truncate">
+              <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 bg-black/70 backdrop-blur-sm text-white text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full max-w-[85%] truncate">
                 {featuredVideoPrompt.title}
               </div>
             )}
-            <div className="absolute bottom-3 right-3 bg-black/80 text-white font-mono text-xs px-2 py-0.5 rounded">
+            <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 bg-black/80 text-white font-mono text-[10px] sm:text-xs px-2 py-0.5 rounded">
               Veo 3 &bull; Sora &bull; Kling
             </div>
           </div>
-          <div className="p-6">
-            <h3 className="text-xl font-black text-[#101010] mb-2">
+          <div className="p-4 sm:p-6">
+            <h3 className="text-lg sm:text-xl font-black text-[#101010] mb-1 sm:mb-2">
               Cinematic AI Video Prompts
             </h3>
-            <p className="text-xs sm:text-sm text-[#8A867D] mb-6 leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#8A867D] mb-4 sm:mb-6 leading-relaxed">
               Commercial camera directions, FPV drone swoops, lighting specs, and motion prompts for Veo 3, Kling, and Sora.
             </p>
             <Link
               href="/prompts/video"
-              className="pill-btn w-full py-3 bg-[#101010] hover:bg-[#252525] text-[#D8F651] font-extrabold text-xs sm:text-sm rounded-full flex items-center justify-center gap-2 shadow-sm"
+              className="pill-btn w-full py-2.5 sm:py-3 bg-[#101010] hover:bg-[#252525] text-[#D8F651] font-extrabold text-xs sm:text-sm rounded-full flex items-center justify-center gap-2 shadow-sm"
             >
               <span>Explore Video Prompts</span>
-              <ArrowRight className="w-4 h-4 text-[#D8F651]" />
+              <ArrowRight className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[#D8F651]" />
             </Link>
           </div>
         </div>
 
         {/* Card 3: AI Agent Skills */}
         <div className="aicorn-card overflow-hidden flex flex-col justify-between group">
-          <div className="relative h-64 overflow-hidden bg-[#EDEDEA]">
+          <div className="relative h-44 sm:h-52 md:h-64 overflow-hidden bg-[#EDEDEA]">
             <img
               src={skillPreview}
               alt={featuredSkill?.title || 'Agent Skills'}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            <div className="absolute top-4 left-4 bg-[#D8F651] text-[#101010] px-3 py-1 rounded-full text-xs font-black flex items-center gap-1.5 shadow-sm">
-              <Bot className="w-3.5 h-3.5 text-[#101010]" />
+            <div className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-[#D8F651] text-[#101010] px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-black flex items-center gap-1.5 shadow-sm">
+              <Bot className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[#101010]" />
               <span>AGENT SKILLS</span>
             </div>
             {featuredSkill && (
-              <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full max-w-[85%] truncate">
+              <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 bg-black/70 backdrop-blur-sm text-white text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full max-w-[85%] truncate">
                 {featuredSkill.title}
               </div>
             )}
           </div>
-          <div className="p-6">
-            <h3 className="text-xl font-black text-[#101010] mb-2">
+          <div className="p-4 sm:p-6">
+            <h3 className="text-lg sm:text-xl font-black text-[#101010] mb-1 sm:mb-2">
               Reusable AI Agent Skills
             </h3>
-            <p className="text-xs sm:text-sm text-[#8A867D] mb-6 leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#8A867D] mb-4 sm:mb-6 leading-relaxed">
               Executable multi-step instruction packs for Claude Code, Cursor, Codex, and Gemini CLI agents.
             </p>
             <Link
               href="/skills"
-              className="pill-btn w-full py-3 bg-[#101010] hover:bg-[#252525] text-[#D8F651] font-extrabold text-xs sm:text-sm rounded-full flex items-center justify-center gap-2 shadow-sm"
+              className="pill-btn w-full py-2.5 sm:py-3 bg-[#101010] hover:bg-[#252525] text-[#D8F651] font-extrabold text-xs sm:text-sm rounded-full flex items-center justify-center gap-2 shadow-sm"
             >
               <span>Explore Skills</span>
-              <ArrowRight className="w-4 h-4 text-[#D8F651]" />
+              <ArrowRight className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[#D8F651]" />
             </Link>
           </div>
         </div>

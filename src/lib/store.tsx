@@ -138,11 +138,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!response.ok) throw new Error('Membership status unavailable');
     const { tier, hasBillingAccount } = await response.json();
     if (tier !== 'free' && tier !== 'starter' && tier !== 'pro') throw new Error('Invalid membership status');
-    setCurrentUser((previous) => previous?.id === user.id
-      ? { ...previous, membership: tier, has_billing_account: hasBillingAccount === true, is_pro: previous.role === 'admin' || tier === 'pro' }
-      : previous);
+    setCurrentUser((previous) => {
+      if (previous?.id !== user.id) return previous;
+      const isOwnerAdmin = isEmailAdmin(previous.email);
+      const isProUser = previous.role === 'admin' || isOwnerAdmin || Boolean(user.publicMetadata?.is_pro) || user.publicMetadata?.membership === 'pro';
+      const effectiveTier: 'free' | 'starter' | 'pro' = isProUser ? 'pro' : tier;
+      return {
+        ...previous,
+        membership: effectiveTier,
+        has_billing_account: hasBillingAccount === true || effectiveTier !== 'free',
+        is_pro: isProUser || effectiveTier === 'pro',
+      };
+    });
     return tier;
-  }, [user?.id]);
+  }, [user?.id, user?.publicMetadata?.is_pro, user?.publicMetadata?.membership]);
 
   // 1. Initial Load: Sync database categories, models, prompts, submissions from Supabase
   useEffect(() => {
@@ -327,6 +336,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         // Strict rule: Only sudapawan301@gmail.com can be recognized as admin
         const role: 'admin' | 'user' = isOwnerAdmin ? 'admin' : 'user';
+        const isProUser = role === 'admin' || clerkUser.publicMetadata?.membership === 'pro' || Boolean(clerkUser.publicMetadata?.is_pro);
+        const userMembership: 'free' | 'starter' | 'pro' = isProUser ? 'pro' : ((clerkUser.publicMetadata?.membership as 'free' | 'starter' | 'pro') || 'free');
+
         const userProfile: UserProfile = {
           id: clerkUser.id,
           name: profile?.name || clerkUser.fullName || clerkUser.firstName || email.split('@')[0] || 'Creator',
@@ -334,9 +346,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           email,
           avatar: clerkUser.imageUrl || profile?.avatar_url || `https://avatar.vercel.sh/${email || clerkUser.id}.png`,
           role,
-          is_pro: role === 'admin',
-          membership: 'free',
-          has_billing_account: false,
+          is_pro: isProUser,
+          membership: userMembership,
+          has_billing_account: userMembership !== 'free',
           joined_date: clerkUser.createdAt
             ? new Date(clerkUser.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
             : 'March 2026',
@@ -378,8 +390,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const email = user.primaryEmailAddress?.emailAddress || '';
       const isOwnerAdmin = isEmailAdmin(email);
       const role: 'admin' | 'user' = isOwnerAdmin ? 'admin' : 'user';
-      const metaMembership = (user.publicMetadata?.membership as 'free' | 'starter' | 'pro') || 'free';
-      const metaIsPro = role === 'admin' || metaMembership === 'pro' || Boolean(user.publicMetadata?.is_pro);
+      const isProUser = role === 'admin' || user.publicMetadata?.membership === 'pro' || Boolean(user.publicMetadata?.is_pro);
+      const metaMembership: 'free' | 'starter' | 'pro' = isProUser ? 'pro' : ((user.publicMetadata?.membership as 'free' | 'starter' | 'pro') || 'free');
 
       setCurrentUser((prev) => prev?.id === user.id ? prev : ({
         id: user.id,
@@ -388,7 +400,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         email,
         avatar: user.imageUrl || `https://avatar.vercel.sh/${email || user.id}.png`,
         role,
-        is_pro: metaIsPro,
+        is_pro: isProUser,
         membership: metaMembership,
         has_billing_account: metaMembership !== 'free',
         joined_date: user.createdAt

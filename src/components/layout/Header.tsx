@@ -453,6 +453,45 @@ export default function Header() {
               </button>
             )}
 
+            {/* Mobile Sign In button (when guest) */}
+            {!currentUser && (
+              <button
+                onClick={() => openUpgradeModal({ reason: 'signin' })}
+                className="sm:hidden px-3 py-1.5 rounded-full bg-[#101010] text-[#D8F651] text-xs font-black shadow-xs"
+              >
+                Sign In
+              </button>
+            )}
+
+            {/* Mobile User Profile Avatar (when logged in) */}
+            {currentUser && (
+              <Link
+                href="/dashboard"
+                className="sm:hidden flex items-center gap-1.5 p-1 bg-white border border-[#E8E4DA] rounded-full"
+              >
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.name}
+                  className="w-6 h-6 rounded-full object-cover"
+                />
+                <span
+                  className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full ${
+                    currentUser.membership === 'pro' || currentUser.is_pro
+                      ? 'bg-[#D8F651] text-[#101010]'
+                      : currentUser.membership === 'starter'
+                      ? 'bg-[#101010] text-white'
+                      : 'bg-[#F7F4EE] text-[#8A867D]'
+                  }`}
+                >
+                  {currentUser.membership === 'pro' || currentUser.is_pro
+                    ? 'Pro'
+                    : currentUser.membership === 'starter'
+                    ? 'Starter'
+                    : 'Free'}
+                </span>
+              </Link>
+            )}
+
             {/* Mobile Menu Hamburger */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -463,6 +502,75 @@ export default function Header() {
             </button>
 
           </div>
+        </div>
+
+        {/* Mobile Quick Horizontal Page Bar (Always visible on mobile screens) */}
+        <div className="lg:hidden w-full overflow-x-auto no-scrollbar py-2 px-3 border-t border-[#E8E4DA]/60 bg-[#FAF8F5] flex items-center gap-1.5 shrink-0 select-none">
+          <Link
+            href="/prompts/image"
+            className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 transition-colors ${
+              pathname.startsWith('/prompts')
+                ? 'bg-[#101010] text-[#D8F651]'
+                : 'bg-white border border-[#E8E4DA] text-[#1A1A1A]'
+            }`}
+          >
+            🔥 Prompts
+          </Link>
+          <Link
+            href="/skills"
+            className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 transition-colors ${
+              pathname.startsWith('/skills')
+                ? 'bg-[#101010] text-[#D8F651]'
+                : 'bg-white border border-[#E8E4DA] text-[#1A1A1A]'
+            }`}
+          >
+            ⚡ Skills
+          </Link>
+          <Link
+            href="/categories"
+            className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 transition-colors ${
+              pathname.startsWith('/categories')
+                ? 'bg-[#101010] text-[#D8F651]'
+                : 'bg-white border border-[#E8E4DA] text-[#1A1A1A]'
+            }`}
+          >
+            📂 Categories
+          </Link>
+          <Link
+            href="/pricing"
+            className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 transition-colors ${
+              pathname === '/pricing'
+                ? 'bg-[#101010] text-[#D8F651]'
+                : 'bg-white border border-[#E8E4DA] text-[#1A1A1A]'
+            }`}
+          >
+            💎 Pricing
+          </Link>
+          <Link
+            href="/blog"
+            className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 transition-colors ${
+              pathname.startsWith('/blog')
+                ? 'bg-[#101010] text-[#D8F651]'
+                : 'bg-white border border-[#E8E4DA] text-[#1A1A1A]'
+            }`}
+          >
+            📝 Blog
+          </Link>
+          {!currentUser ? (
+            <button
+              onClick={() => openUpgradeModal({ reason: 'signin' })}
+              className="px-3 py-1 rounded-full text-xs font-bold shrink-0 bg-[#D8F651] text-[#101010] border border-[#101010]"
+            >
+              Sign In
+            </button>
+          ) : (
+            <Link
+              href="/dashboard"
+              className="px-3 py-1 rounded-full text-xs font-bold shrink-0 bg-[#F7F4EE] border border-[#E8E4DA] text-[#101010]"
+            >
+              👤 Profile
+            </Link>
+          )}
         </div>
 
         {/* Mobile Navigation Drawer */}
