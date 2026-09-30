@@ -19,18 +19,23 @@ export function dodo() {
 }
 
 export async function getSubscriptions(userId: string): Promise<SubscriptionRow[]> {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return [];
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('getSubscriptions: Supabase service role not configured');
+    throw new Error('Supabase service role not configured');
+  }
   try {
     const { data, error } = await supabaseAdmin
       .from('dodo_subscriptions')
       .select('subscription_id,user_id,product_id,customer_id,status,next_billing_date,cancel_at_next_billing_date')
       .eq('user_id', userId);
     if (error) {
-      return [];
+      console.error('getSubscriptions error:', error);
+      throw error;
     }
     return data || [];
-  } catch {
-    return [];
+  } catch (error) {
+    console.error('getSubscriptions exception:', error);
+    throw error;
   }
 }
 

@@ -18,7 +18,8 @@ import {
   Video,
   Bot,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Wand2
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { isUserAdmin } from '@/lib/authUtils';
@@ -31,11 +32,13 @@ export default function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isPromptsDropdownOpen, setIsPromptsDropdownOpen] = useState(false);
   const [isCategoriesDropdownOpen, setIsCategoriesDropdownOpen] = useState(false);
+  const [isAiVideosDropdownOpen, setIsAiVideosDropdownOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const promptsRef = useRef<HTMLDivElement>(null);
   const categoriesRef = useRef<HTMLDivElement>(null);
+  const aiVideosRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns on outside click
@@ -46,6 +49,9 @@ export default function Header() {
       }
       if (categoriesRef.current && !categoriesRef.current.contains(event.target as Node)) {
         setIsCategoriesDropdownOpen(false);
+      }
+      if (aiVideosRef.current && !aiVideosRef.current.contains(event.target as Node)) {
+        setIsAiVideosDropdownOpen(false);
       }
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
@@ -58,6 +64,7 @@ export default function Header() {
   const closeMenus = () => {
     setIsPromptsDropdownOpen(false);
     setIsCategoriesDropdownOpen(false);
+    setIsAiVideosDropdownOpen(false);
     setIsUserMenuOpen(false);
     setIsMobileMenuOpen(false);
   };
@@ -268,6 +275,59 @@ export default function Header() {
                       </div>
 
                     </div>
+                  </div>
+                )}
+              </div>
+
+              {/* AI videos Dropdown (Opus 5.5 & Manus Launch Videos - matching Skillry reference) */}
+              <div className="relative" ref={aiVideosRef}>
+                <button
+                  onClick={() => setIsAiVideosDropdownOpen(!isAiVideosDropdownOpen)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-black/5 transition-colors ${
+                    pathname.startsWith('/ai-videos') ? 'text-[#101010] font-bold bg-black/5' : 'text-[#1A1A1A]'
+                  }`}
+                >
+                  <span>AI videos</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isAiVideosDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {isAiVideosDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl border border-[#E8E4DA] shadow-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                    {/* 1. Opus 5.5 videos */}
+                    <Link
+                      href="/ai-videos/opus-5-5"
+                      onClick={closeMenus}
+                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#F7F4EE] transition-colors group"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-[#FFF2EB] text-[#FF4B26] flex items-center justify-center shrink-0 border border-[#FFD9C7]/70 group-hover:scale-105 transition-transform">
+                        <Sparkles className="w-5 h-5 text-[#FF4B26]" />
+                      </div>
+                      <div>
+                        <div className="font-extrabold text-xs text-[#101010] group-hover:text-black flex items-center gap-1.5">
+                          <span>Opus 5.5 videos</span>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#D8F651] text-[#101010] font-black">NEW</span>
+                        </div>
+                        <div className="text-[11px] text-[#8A867D] mt-0.5">Viral Opus 5.5 videos, with prompts</div>
+                      </div>
+                    </Link>
+
+                    {/* 2. Manus 2.0 Launch Video */}
+                    <Link
+                      href="/ai-videos/launch"
+                      onClick={closeMenus}
+                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#F7F4EE] transition-colors group mt-0.5"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-[#EAF8E8] text-[#101010] flex items-center justify-center shrink-0 border border-[#D8F651]/50 group-hover:scale-105 transition-transform">
+                        <Wand2 className="w-5 h-5 text-[#101010]" />
+                      </div>
+                      <div>
+                        <div className="font-extrabold text-xs text-[#101010] group-hover:text-black flex items-center gap-1.5">
+                          <span>Manus 2.0 Launch Video</span>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#101010] text-[#D8F651] font-black">SKILL</span>
+                        </div>
+                        <div className="text-[11px] text-[#8A867D] mt-0.5">Turn a URL into a launch film</div>
+                      </div>
+                    </Link>
                   </div>
                 )}
               </div>
@@ -537,6 +597,26 @@ export default function Header() {
             📂 Categories
           </Link>
           <Link
+            href="/ai-videos/opus-5-5"
+            className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 transition-colors ${
+              pathname === '/ai-videos/opus-5-5'
+                ? 'bg-[#101010] text-[#D8F651]'
+                : 'bg-white border border-[#E8E4DA] text-[#1A1A1A]'
+            }`}
+          >
+            🎬 Opus 5.5
+          </Link>
+          <Link
+            href="/ai-videos/launch"
+            className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 transition-colors ${
+              pathname === '/ai-videos/launch'
+                ? 'bg-[#101010] text-[#D8F651]'
+                : 'bg-white border border-[#E8E4DA] text-[#1A1A1A]'
+            }`}
+          >
+            🚀 Launch Film
+          </Link>
+          <Link
             href="/pricing"
             className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 transition-colors ${
               pathname === '/pricing'
@@ -604,6 +684,20 @@ export default function Header() {
               >
                 <FolderOpen className="w-4 h-4" />
                 <span>Categories</span>
+              </Link>
+              <Link
+                href="/ai-videos/opus-5-5"
+                className="p-3 rounded-2xl bg-[#FFF2EB] flex items-center gap-2 text-[#101010]"
+              >
+                <Sparkles className="w-4 h-4 text-[#FF4B26]" />
+                <span>Opus 5.5 Videos</span>
+              </Link>
+              <Link
+                href="/ai-videos/launch"
+                className="p-3 rounded-2xl bg-[#EAF8E8] flex items-center gap-2 text-[#101010]"
+              >
+                <Wand2 className="w-4 h-4 text-[#101010]" />
+                <span>Launch Video Skill</span>
               </Link>
             </div>
 

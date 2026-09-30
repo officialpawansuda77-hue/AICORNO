@@ -8,7 +8,8 @@ import {
   Copy,
   Check,
   Play,
-  Sparkles
+  Sparkles,
+  Key,
 } from 'lucide-react';
 import { Prompt } from '@/types';
 import { useAppStore } from '@/lib/store';
@@ -142,8 +143,8 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
         {/* Top Left Tags: Free / Pro & Type */}
         <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
           {prompt.is_pro ? (
-            <span className="bg-[#101010]/85 backdrop-blur-md text-[#D8F651] text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
-              <Sparkles className="w-3 h-3 text-[#D8F651]" />
+            <span className="bg-[#101010]/90 backdrop-blur-md text-[#D8F651] text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm border border-[#D8F651]/40">
+              <Key className="w-3 h-3 text-[#D8F651]" />
               <span>PRO</span>
             </span>
           ) : (
@@ -229,6 +230,8 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
             className={`pill-btn flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-black transition-all ${
               copied
                 ? 'bg-[#101010] text-[#D8F651]'
+                : prompt.is_pro && !canCopyPrompt(prompt, currentUser)
+                ? 'bg-[#101010] text-[#D8F651] hover:bg-[#202020]'
                 : 'bg-[#D8F651] hover:bg-[#C5E53E] text-[#101010]'
             }`}
           >
@@ -236,6 +239,11 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
               <>
                 <Check className="w-3.5 h-3.5" />
                 <span>Copied ✓</span>
+              </>
+            ) : prompt.is_pro && !canCopyPrompt(prompt, currentUser) ? (
+              <>
+                <Key className="w-3.5 h-3.5 text-[#D8F651]" />
+                <span>Unlock Prompt</span>
               </>
             ) : (
               <>

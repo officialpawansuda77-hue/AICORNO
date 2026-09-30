@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Copy, Check, Heart, Terminal } from 'lucide-react';
+import { Copy, Check, Heart, Terminal, Key } from 'lucide-react';
 import { Skill } from '@/types';
 import { useAppStore } from '@/lib/store';
 import confetti from 'canvas-confetti';
@@ -18,13 +18,14 @@ export default function SkillCard({ skill }: SkillCardProps) {
   const [copied, setCopied] = useState(false);
 
   const favorited = isFavorite(skill.id);
+  const isUserPro = currentUser?.role === 'admin' || currentUser?.is_pro || currentUser?.membership === 'pro';
 
   const handleCopyInstall = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
 
     // Skills are exclusive to the $9.99 Pro Unlimited plan
-    if (!currentUser?.is_pro && currentUser?.role !== 'admin') {
+    if (!isUserPro) {
       openUpgradeModal({
         reason: 'skill',
         itemTitle: skill.title,
@@ -106,8 +107,9 @@ export default function SkillCard({ skill }: SkillCardProps) {
             <span>AGENT SKILL</span>
           </span>
           {skill.is_pro && (
-            <span className="bg-[#FF4B26] text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
-              PRO
+            <span className="bg-[#101010]/90 backdrop-blur-md text-[#D8F651] text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1 border border-[#D8F651]/40">
+              <Key className="w-2.5 h-2.5 text-[#D8F651]" />
+              <span>PRO</span>
             </span>
           )}
         </div>
@@ -171,6 +173,8 @@ export default function SkillCard({ skill }: SkillCardProps) {
             className={`pill-btn flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-black transition-all ${
               copied
                 ? 'bg-[#101010] text-[#D8F651]'
+                : skill.is_pro && !isUserPro
+                ? 'bg-[#101010] text-[#D8F651] hover:bg-[#202020]'
                 : 'bg-[#D8F651] hover:bg-[#C5E53E] text-[#101010]'
             }`}
           >
@@ -178,6 +182,11 @@ export default function SkillCard({ skill }: SkillCardProps) {
               <>
                 <Check className="w-3.5 h-3.5" />
                 <span>Copied ✓</span>
+              </>
+            ) : skill.is_pro && !isUserPro ? (
+              <>
+                <Key className="w-3.5 h-3.5 text-[#D8F651]" />
+                <span>Unlock Skill</span>
               </>
             ) : (
               <>

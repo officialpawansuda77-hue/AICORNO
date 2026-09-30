@@ -34,6 +34,8 @@ export function membershipFor(rows: SubscriptionRow[]): Membership {
 }
 
 export function canCopyPrompt(prompt: Prompt, user: UserProfile | null): boolean {
-  if (!prompt.is_pro || user?.role === 'admin' || user?.is_pro) return true;
-  return prompt.type === 'image' && user?.membership === 'starter';
+  if (!prompt.is_pro) return true;
+  if (!user) return false;
+  if (user.role === 'admin' || user.is_pro || user.membership === 'pro') return true;
+  return prompt.type === 'image' && user.membership === 'starter';
 }

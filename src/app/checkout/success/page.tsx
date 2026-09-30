@@ -55,21 +55,23 @@ export default function CheckoutReturnPage() {
     };
   }, [currentUser?.id, refreshMembership]);
 
-  // Automatic redirect to Homepage countdown
+  // Countdown runs only when membership status is active; state updater stays pure
   useEffect(() => {
+    if (status !== 'active') return;
+
     const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          router.push('/');
-          return 0;
-        }
-        return prev - 1;
-      });
+      setCountdown((prev) => prev - 1);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [router]);
+  }, [status]);
+
+  // Redirect when countdown reaches zero
+  useEffect(() => {
+    if (countdown === 0) {
+      router.push('/');
+    }
+  }, [countdown, router]);
 
   const planName =
     currentUser?.membership === 'pro' || currentUser?.is_pro
@@ -95,7 +97,9 @@ export default function CheckoutReturnPage() {
         </h1>
 
         <p className="text-sm text-[#8A867D] mb-6 leading-relaxed max-w-md mx-auto">
-          Your payment was processed successfully by <strong>Dodo Payments</strong>. Your membership privileges are active.
+          {status === 'active'
+            ? <>Your payment was processed successfully by <strong>Dodo Payments</strong>. Your membership privileges are active.</>
+            : <>Your payment is being processed. Please wait a moment while we confirm your membership.</>}
         </p>
 
         {/* Redirect notice banner */}

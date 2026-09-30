@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { X, Sparkles, Check, ArrowRight, UserCheck, HeartHandshake } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 
@@ -48,13 +48,27 @@ export default function OnboardingSurveyModal() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedRole, setSelectedRole] = useState<string>('founder');
   const [selectedSource, setSelectedSource] = useState<string>('instagram');
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  const prevUserIdRef = useRef<string | undefined>(undefined);
 
   // Check if survey should be shown for the current user
   useEffect(() => {
     if (!currentUser) {
       setIsOpen(false);
+      prevUserIdRef.current = undefined;
       return;
     }
+
+    if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== currentUser.id) {
+      // User changed: close survey and reset UI state before checking the new user's flag
+      setIsOpen(false);
+      setStep(1);
+      setSelectedRole('founder');
+      setSelectedSource('instagram');
+    }
+    prevUserIdRef.current = currentUser.id;
 
     if (typeof window !== 'undefined') {
       const isCompleted = localStorage.getItem(`aicorn_survey_completed_${currentUser.id}`);
@@ -67,6 +81,47 @@ export default function OnboardingSurveyModal() {
       }
     }
   }, [currentUser?.id]);
+
+  // Accessible modal: focus trap, Escape dismiss, restore focus
+  useEffect(() => {
+    if (!isOpen) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    previouslyFocusedRef.current = document.activeElement as HTMLElement;
+
+    const focusable = dialog.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const first = focusable[0] as HTMLElement;
+    first?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleFinish('skipped');
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const last = focusable[focusable.length - 1] as HTMLElement;
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocusedRef.current?.focus?.();
+    };
+  }, [isOpen]);
 
   if (!isOpen || !currentUser) return null;
 
@@ -91,6 +146,10 @@ export default function OnboardingSurveyModal() {
 
   return (
     <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="onboarding-survey-heading"
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto"
       onClick={() => handleFinish('skipped')}
     >
@@ -100,6 +159,9 @@ export default function OnboardingSurveyModal() {
       >
         {/* Glow Accent */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#D8F651] via-[#FF4B26] to-[#D8F651]" />
+
+        {/* Accessible heading for screen readers */}
+        <h2 id="onboarding-survey-heading" className="sr-only">Onboarding survey</h2>
 
         {/* Header bar with step indicator & Skip button */}
         <div className="flex items-center justify-between mb-4">

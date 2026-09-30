@@ -7,6 +7,7 @@ import { isEmailAdmin } from './authUtils';
 import { isCategoryMatch } from './categories';
 import { IMAGE_PROMPTS } from '@/data/imagePrompts';
 import { VIDEO_PROMPTS } from '@/data/videoPrompts';
+import { OPUS_5_5_VIDEOS } from '@/data/opusVideosData';
 import { SKILLS_DATA } from '@/data/skillsData';
 import { CATEGORIES as DEFAULT_CATEGORIES, AI_MODELS as DEFAULT_MODELS } from '@/data/categoriesModels';
 import { supabase } from './supabase';
@@ -196,7 +197,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }
           }
 
-          const basePrompts = promptsRes?.prompts || [];
+          const basePrompts = (promptsRes?.prompts && promptsRes.prompts.length > 0)
+            ? [...promptsRes.prompts, ...OPUS_5_5_VIDEOS]
+            : [...IMAGE_PROMPTS, ...VIDEO_PROMPTS, ...OPUS_5_5_VIDEOS];
 
           // Deduplicate prompts by ID and title+preview_url, prioritizing DB prompts
           const seen = new Set<string>();
@@ -490,7 +493,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Prompts operations
   const getPromptById = useCallback((id: string) => {
-    return prompts.find((p) => p.id === id);
+    return prompts.find((p) => p.id === id) || OPUS_5_5_VIDEOS.find((p) => p.id === id);
   }, [prompts]);
 
   const addPrompt = useCallback(async (data: Omit<Prompt, 'id' | 'created_at' | 'copies' | 'favorites' | 'views'>): Promise<Prompt> => {
