@@ -98,7 +98,7 @@ export default function Header() {
             <Link href="/" onClick={closeMenus} className="flex items-center gap-2.5 group">
               {/* Official AICORN Logo */}
               <img
-                src="/logo.png"
+                src="/logo.svg"
                 alt="AICORN"
                 className="w-9 h-9 rounded-xl object-cover shadow-sm group-hover:scale-105 transition-transform"
               />
