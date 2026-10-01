@@ -26,7 +26,6 @@ const ALL_VIDEO_PROMPTS: Prompt[] = [
     is_featured: true,
     is_trending: true,
     preview_url: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200&auto=format&fit=crop',
-    video_url: 'https://assets.mixkit.co/videos/preview/mixkit-sports-car-driving-on-a-road-at-sunset-41487-large.mp4',
     created_at: '2026-03-10',
   },
   {
