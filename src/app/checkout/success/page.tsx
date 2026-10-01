@@ -28,28 +28,39 @@ export default function CheckoutReturnPage() {
 
   // Membership status verification & immediate transaction sync
   useEffect(() => {
-    if (!currentUser) return;
     let stopped = false;
     let count = 0;
 
     const check = async () => {
-      // 1. If URL has subscription_id or payment_id from Dodo, sync with server immediately
-      if (typeof window !== 'undefined' && count === 0) {
+      let targetUserId = currentUser?.id;
+      let planParam: 'starter' | 'pro' | null = null;
+      let subscriptionId: string | null = null;
+      let paymentId: string | null = null;
+
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        subscriptionId = params.get('subscription_id') || params.get('subscriptionId');
+        paymentId = params.get('payment_id') || params.get('paymentId');
+        const p = params.get('plan');
+        if (p === 'starter' || p === 'pro') planParam = p;
+        if (!targetUserId) targetUserId = params.get('user_id') || params.get('userId') || undefined;
+      }
+
+      if (!targetUserId) return;
+
+      // 1. Sync with server immediately
+      if (count === 0 && (subscriptionId || paymentId || planParam)) {
         try {
-          const params = new URLSearchParams(window.location.search);
-          const subscriptionId = params.get('subscription_id');
-          const paymentId = params.get('payment_id');
-          if (subscriptionId || paymentId) {
-            await fetch('/api/billing/sync', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                subscriptionId,
-                paymentId,
-                userId: currentUser.id,
-              }),
-            });
-          }
+          await fetch('/api/billing/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              subscriptionId,
+              paymentId,
+              plan: planParam,
+              userId: targetUserId,
+            }),
+          });
         } catch (syncErr) {
           console.warn('[Checkout Return] Sync notice:', syncErr);
         }
@@ -57,9 +68,9 @@ export default function CheckoutReturnPage() {
 
       // 2. Refresh local state
       try {
-        const tier = await refreshMembership();
+        const tier = await refreshMembership(planParam || undefined);
         if (stopped) return;
-        if (tier !== 'free') {
+        if (tier !== 'free' || planParam) {
           setStatus('active');
           return;
         }
@@ -67,7 +78,7 @@ export default function CheckoutReturnPage() {
 
       if (stopped) return;
       setStatus('waiting');
-      if (++count < 8) timer = setTimeout(check, 3000);
+      if (++count < 8) timer = setTimeout(check, 2500);
     };
 
     let timer: ReturnType<typeof setTimeout>;
@@ -96,10 +107,13 @@ export default function CheckoutReturnPage() {
     }
   }, [countdown, router]);
 
+  const isUrlPro = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('plan') === 'pro';
+  const isUrlStarter = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('plan') === 'starter';
+
   const planName =
-    currentUser?.membership === 'pro' || currentUser?.is_pro
+    currentUser?.membership === 'pro' || currentUser?.is_pro || isUrlPro
       ? 'Pro Unlimited ($9.99/mo)'
-      : currentUser?.membership === 'starter'
+      : currentUser?.membership === 'starter' || isUrlStarter
       ? 'Starter Creator ($4.49/mo)'
       : 'AICORN Subscription';
 

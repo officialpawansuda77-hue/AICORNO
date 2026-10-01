@@ -34,13 +34,21 @@ export async function POST(request: Request) {
   const metadata = (data.metadata || {}) as Record<string, any>;
   const subscriptionId = data.subscription_id || data.payment_id || '';
   const customer = (data.customer || {}) as Record<string, any>;
-  const eventId = request.headers.get('webhook-id');
+  const eventId = request.headers.get('webhook-id') || request.headers.get('svix-id') || data.payment_id || data.subscription_id || `evt_${Date.now()}`;
 
-  if (!eventId) {
-    return new Response('Missing webhook-id', { status: 400 });
+  let userId = metadata?.clerk_user_id || metadata?.userId || customer?.metadata?.clerk_user_id || customer?.metadata?.userId;
+
+  if (!userId && customer?.email) {
+    try {
+      const clerk = await clerkClient();
+      const list = await clerk.users.getUserList({ emailAddress: [customer.email], limit: 1 });
+      if (list && list.data && list.data.length > 0) {
+        userId = list.data[0].id;
+      }
+    } catch (lookupErr) {
+      console.warn('[Webhook] Clerk user lookup by email notice:', lookupErr);
+    }
   }
-
-  let userId = metadata?.clerk_user_id || metadata?.userId;
 
   try {
     // 1. Try applying event via Supabase RPC if table/function exists

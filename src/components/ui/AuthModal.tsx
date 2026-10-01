@@ -6,9 +6,16 @@ import { SignIn, SignUp } from '@clerk/nextjs';
 import { useAppStore } from '@/lib/store';
 
 export default function AuthModal() {
-  const { isAuthModalOpen, setAuthModalOpen } = useAppStore();
+  const { isAuthModalOpen, setAuthModalOpen, currentUser } = useAppStore();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [pendingPlan, setPendingPlan] = useState<'starter' | 'pro' | null>(null);
+
+  // Auto-close when user successfully authenticates
+  useEffect(() => {
+    if (currentUser && isAuthModalOpen) {
+      setAuthModalOpen(false);
+    }
+  }, [currentUser, isAuthModalOpen, setAuthModalOpen]);
 
   useEffect(() => {
     if (isAuthModalOpen && typeof window !== 'undefined') {
@@ -88,6 +95,7 @@ export default function AuthModal() {
           {mode === 'signin' ? (
             <SignIn
               routing="hash"
+              fallbackRedirectUrl="/"
               appearance={{
                 variables: {
                   colorPrimary: '#101010',
@@ -107,6 +115,7 @@ export default function AuthModal() {
           ) : (
             <SignUp
               routing="hash"
+              fallbackRedirectUrl="/"
               appearance={{
                 variables: {
                   colorPrimary: '#101010',

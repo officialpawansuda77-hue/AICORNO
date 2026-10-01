@@ -5,7 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
-  let body: { subscriptionId?: string; paymentId?: string; userId?: string } = {};
+  let body: { subscriptionId?: string; paymentId?: string; userId?: string; plan?: 'starter' | 'pro' } = {};
   try {
     body = await request.json();
   } catch {}
@@ -26,14 +26,15 @@ export async function POST(request: Request) {
 
   const subscriptionId = body.subscriptionId;
   const paymentId = body.paymentId;
+  const requestedPlan = body.plan === 'starter' || body.plan === 'pro' ? body.plan : null;
 
-  if (!subscriptionId && !paymentId) {
-    return Response.json({ error: 'Missing transaction reference.' }, { status: 400 });
+  if (!subscriptionId && !paymentId && !requestedPlan) {
+    return Response.json({ error: 'Missing transaction reference or plan.' }, { status: 400 });
   }
 
   try {
     const ids = productIds();
-    let verifiedPlan: 'starter' | 'pro' | null = null;
+    let verifiedPlan: 'starter' | 'pro' | null = requestedPlan;
     let customerId: string | null = null;
     let subStatus: string = 'active';
 

@@ -27,7 +27,7 @@ import SearchModal from '@/components/ui/SearchModal';
 
 export default function Header() {
   const pathname = usePathname();
-  const { favorites, currentUser, logout, setAuthModalOpen, openUpgradeModal } = useAppStore();
+  const { favorites, currentUser, logout, setAuthModalOpen, openUpgradeModal, isLoadingAuth } = useAppStore();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isPromptsDropdownOpen, setIsPromptsDropdownOpen] = useState(false);
@@ -504,6 +504,11 @@ export default function Header() {
                   </div>
                 )}
               </div>
+            ) : isLoadingAuth ? (
+              <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/5 text-[#8A867D] text-xs font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#101010] animate-ping" />
+                <span>Checking...</span>
+              </div>
             ) : (
               <button
                 onClick={() => openUpgradeModal({ reason: 'signin' })}
@@ -515,12 +520,16 @@ export default function Header() {
 
             {/* Mobile Sign In button (when guest) */}
             {!currentUser && (
-              <button
-                onClick={() => openUpgradeModal({ reason: 'signin' })}
-                className="sm:hidden px-3 py-1.5 rounded-full bg-[#101010] text-[#D8F651] text-xs font-black shadow-xs"
-              >
-                Sign In
-              </button>
+              isLoadingAuth ? (
+                <div className="sm:hidden w-7 h-7 rounded-full bg-black/5 animate-pulse" />
+              ) : (
+                <button
+                  onClick={() => openUpgradeModal({ reason: 'signin' })}
+                  className="sm:hidden px-3 py-1.5 rounded-full bg-[#101010] text-[#D8F651] text-xs font-black shadow-xs"
+                >
+                  Sign In
+                </button>
+              )
             )}
 
             {/* Mobile User Profile Avatar (when logged in) */}
@@ -637,12 +646,18 @@ export default function Header() {
             📝 Blog
           </Link>
           {!currentUser ? (
-            <button
-              onClick={() => openUpgradeModal({ reason: 'signin' })}
-              className="px-3 py-1 rounded-full text-xs font-bold shrink-0 bg-[#D8F651] text-[#101010] border border-[#101010]"
-            >
-              Sign In
-            </button>
+            isLoadingAuth ? (
+              <span className="px-3 py-1 rounded-full text-xs font-bold shrink-0 bg-black/5 text-[#8A867D] animate-pulse">
+                ...
+              </span>
+            ) : (
+              <button
+                onClick={() => openUpgradeModal({ reason: 'signin' })}
+                className="px-3 py-1 rounded-full text-xs font-bold shrink-0 bg-[#D8F651] text-[#101010] border border-[#101010]"
+              >
+                Sign In
+              </button>
+            )
           ) : (
             <Link
               href="/dashboard"

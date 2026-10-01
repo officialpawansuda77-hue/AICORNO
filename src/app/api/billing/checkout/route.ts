@@ -87,7 +87,7 @@ export async function POST(request: Request) {
       product_cart: [{ product_id: productId, quantity: 1 }],
       customer: { email, name: name || email },
       metadata: { clerk_user_id: userId, plan },
-      return_url: `${origin}/checkout/success`,
+      return_url: `${origin}/checkout/success?plan=${encodeURIComponent(plan)}&user_id=${encodeURIComponent(userId)}`,
       cancel_url: `${origin}/pricing`,
     });
 

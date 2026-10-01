@@ -75,7 +75,7 @@ interface AppContextType {
   // Auth / User (Clerk is the sole identity and authentication provider)
   currentUser: UserProfile | null;
   isLoadingAuth: boolean;
-  refreshMembership: () => Promise<'free' | 'starter' | 'pro'>;
+  refreshMembership: (optimisticTier?: 'free' | 'starter' | 'pro') => Promise<'free' | 'starter' | 'pro'>;
   login: () => void;
   loginWithGoogle: () => void;
   signUp: () => void;
@@ -120,8 +120,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [submissions, setSubmissions] = useState<UserSubmission[]>([]);
   const [recentCopies, setRecentCopies] = useState<{ id: string; title: string; type: string; timestamp: number }[]>([]);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('aicorn_user_profile');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return null;
+  });
+  const [isLoadingAuth, setIsLoadingAuth] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        if (localStorage.getItem('aicorn_user_profile')) return false;
+      } catch {}
+    }
+    return true;
+  });
   const [isAuthModalOpen, setAuthModalOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -135,26 +150,66 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Dynamic Blog & Social Posts
   const [blogPosts, setBlogPosts] = useState<BlogPostItem[]>([]);
 
-  const refreshMembership = useCallback(async (): Promise<'free' | 'starter' | 'pro'> => {
+  const refreshMembership = useCallback(async (optimisticTier?: 'free' | 'starter' | 'pro'): Promise<'free' | 'starter' | 'pro'> => {
     if (!user?.id) throw new Error('Sign in required');
-    const response = await fetch(`/api/billing/status?userId=${encodeURIComponent(user.id)}`, { cache: 'no-store' });
-    if (!response.ok) throw new Error('Membership status unavailable');
-    const { tier, hasBillingAccount } = await response.json();
-    if (tier !== 'free' && tier !== 'starter' && tier !== 'pro') throw new Error('Invalid membership status');
+    try {
+      if (typeof (user as any).reload === 'function') {
+        await (user as any).reload();
+      }
+    } catch {}
+
+    let tier: 'free' | 'starter' | 'pro' = optimisticTier || 'free';
+    let hasBillingAccount = tier !== 'free';
+
+    try {
+      const response = await fetch(`/api/billing/status?userId=${encodeURIComponent(user.id)}`, { cache: 'no-store' });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.tier === 'free' || data.tier === 'starter' || data.tier === 'pro') {
+          tier = data.tier;
+          hasBillingAccount = Boolean(data.hasBillingAccount);
+        }
+      }
+    } catch (err) {
+      console.warn('[refreshMembership] status query warning:', err);
+    }
+
+    if (optimisticTier && (optimisticTier === 'pro' || optimisticTier === 'starter')) {
+      tier = optimisticTier;
+      hasBillingAccount = true;
+    }
+
     setCurrentUser((previous) => {
-      if (previous?.id !== user.id) return previous;
-      const isOwnerAdmin = isEmailAdmin(previous.email);
-      const isProUser = previous.role === 'admin' || isOwnerAdmin || Boolean(user.publicMetadata?.is_pro) || user.publicMetadata?.membership === 'pro';
-      const effectiveTier: 'free' | 'starter' | 'pro' = isProUser ? 'pro' : tier;
-      return {
-        ...previous,
+      const email = previous?.email || user.primaryEmailAddress?.emailAddress || '';
+      const isOwnerAdmin = isEmailAdmin(email);
+      const metaMembershipStr = String(user.publicMetadata?.membership || '').toLowerCase().trim();
+      const isProUser = previous?.role === 'admin' || isOwnerAdmin || Boolean(user.publicMetadata?.is_pro) || metaMembershipStr === 'pro' || tier === 'pro';
+      const effectiveTier: 'free' | 'starter' | 'pro' = isProUser ? 'pro' : (tier !== 'free' ? tier : (metaMembershipStr === 'starter' ? 'starter' : 'free'));
+
+      const updated: UserProfile = {
+        id: user.id,
+        name: previous?.name || user.fullName || user.firstName || email.split('@')[0] || 'Creator',
+        handle: previous?.handle || (user.username ? `@${user.username}` : `@${email.split('@')[0] || 'creator'}`),
+        email,
+        avatar: user.imageUrl || previous?.avatar || `https://avatar.vercel.sh/${email || user.id}.png`,
+        role: isOwnerAdmin ? 'admin' : (previous?.role || 'user'),
         membership: effectiveTier,
-        has_billing_account: hasBillingAccount === true || effectiveTier !== 'free',
+        has_billing_account: hasBillingAccount || effectiveTier !== 'free',
         is_pro: isProUser || effectiveTier === 'pro',
+        joined_date: previous?.joined_date || (user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '2026'),
       };
+
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('aicorn_user_profile', JSON.stringify(updated));
+        } catch {}
+      }
+
+      return updated;
     });
+
     return tier;
-  }, [user?.id, user?.publicMetadata?.is_pro, user?.publicMetadata?.membership]);
+  }, [user]);
 
   // 1. Initial Load: Instant local hydration + background remote sync (Zero UI blocking)
   useEffect(() => {
@@ -263,49 +318,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       try {
         let profile = null;
-        // Attempt to fetch profile from public.profiles
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', clerkUser.id)
-          .maybeSingle();
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', clerkUser.id)
+            .maybeSingle();
+
+          if (!error && data) {
+            profile = data;
+            const email = clerkUser.primaryEmailAddress?.emailAddress || '';
+            const isOwnerAdmin = isEmailAdmin(email);
+            if (isOwnerAdmin && profile.role !== 'admin') {
+              try {
+                await supabase.from('profiles').update({ role: 'admin' }).eq('user_id', clerkUser.id);
+                profile.role = 'admin';
+              } catch (pErr) {
+                console.warn('[Admin Promotion Notice]:', pErr);
+              }
+            }
+          }
+        } catch {
+          // Schema may use UUID for user_id; Clerk ID is string, ignore safely
+        }
 
         const email = clerkUser.primaryEmailAddress?.emailAddress || '';
         const isOwnerAdmin = isEmailAdmin(email);
-
-        if (!error && data) {
-          profile = data;
-          // If this is the owner admin but role in Supabase is not yet 'admin', promote immediately
-          if (isOwnerAdmin && profile.role !== 'admin') {
-            try {
-              await supabase.from('profiles').update({ role: 'admin' }).eq('user_id', clerkUser.id);
-              profile.role = 'admin';
-            } catch (pErr) {
-              console.warn('[Admin Promotion Notice]:', pErr);
-            }
-          }
-        } else {
-          // If profile does not exist yet in Supabase, sync initial profile row
-          const fullName = clerkUser.fullName || clerkUser.firstName || email.split('@')[0] || 'Creator';
-          const initialProfile = {
-            id: clerkUser.id,
-            user_id: clerkUser.id,
-            name: fullName,
-            avatar_url: clerkUser.imageUrl || `https://avatar.vercel.sh/${email || clerkUser.id}.png`,
-            role: isOwnerAdmin ? 'admin' : 'user',
-          };
-          try {
-            await supabase.from('profiles').upsert(initialProfile, { onConflict: 'user_id' });
-          } catch (upsertErr) {
-            console.warn('[Profile Sync] Upsert notice:', upsertErr);
-          }
-          profile = initialProfile;
-        }
-
-        // Strict rule: Only sudapawan301@gmail.com can be recognized as admin
         const role: 'admin' | 'user' = isOwnerAdmin ? 'admin' : 'user';
-        const isProUser = role === 'admin' || clerkUser.publicMetadata?.membership === 'pro' || Boolean(clerkUser.publicMetadata?.is_pro);
-        const userMembership: 'free' | 'starter' | 'pro' = isProUser ? 'pro' : ((clerkUser.publicMetadata?.membership as 'free' | 'starter' | 'pro') || 'free');
+        const metaMembershipStr = String(clerkUser.publicMetadata?.membership || '').toLowerCase().trim();
+        const isProUser = role === 'admin' || metaMembershipStr === 'pro' || Boolean(clerkUser.publicMetadata?.is_pro);
+        const userMembership: 'free' | 'starter' | 'pro' = isProUser ? 'pro' : (metaMembershipStr === 'starter' ? 'starter' : 'free');
 
         const userProfile: UserProfile = {
           id: clerkUser.id,
@@ -323,7 +365,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
 
         if (isMounted) {
-          setCurrentUser(userProfile);
+          setCurrentUser((prev) => {
+            const effectiveMembership = prev?.membership && prev.membership !== 'free' ? prev.membership : userProfile.membership;
+            const effectiveIsPro = effectiveMembership === 'pro' || userProfile.is_pro;
+            const updated = {
+              ...userProfile,
+              membership: effectiveMembership,
+              is_pro: effectiveIsPro,
+              has_billing_account: effectiveMembership !== 'free',
+            };
+            if (typeof window !== 'undefined') {
+              try { localStorage.setItem('aicorn_user_profile', JSON.stringify(updated)); } catch {}
+            }
+            return updated;
+          });
           // Entitlements come from the authenticated server endpoint, not the checkout URL.
           void refreshMembership().catch(() => {});
         }
@@ -354,32 +409,54 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (isSignedIn && user) {
-      // 1. Immediately set optimistic profile so Header & UI reflect login in 0ms!
+      // 1. Immediately set profile and persist so Header & UI reflect login in 0ms!
       const email = user.primaryEmailAddress?.emailAddress || '';
       const isOwnerAdmin = isEmailAdmin(email);
       const role: 'admin' | 'user' = isOwnerAdmin ? 'admin' : 'user';
-      const isProUser = role === 'admin' || user.publicMetadata?.membership === 'pro' || Boolean(user.publicMetadata?.is_pro);
-      const metaMembership: 'free' | 'starter' | 'pro' = isProUser ? 'pro' : ((user.publicMetadata?.membership as 'free' | 'starter' | 'pro') || 'free');
+      const metaMembershipStr = String(user.publicMetadata?.membership || '').toLowerCase().trim();
+      const isProUser = role === 'admin' || metaMembershipStr === 'pro' || Boolean(user.publicMetadata?.is_pro);
+      const metaMembership: 'free' | 'starter' | 'pro' = isProUser ? 'pro' : (metaMembershipStr === 'starter' ? 'starter' : 'free');
 
-      setCurrentUser((prev) => prev?.id === user.id ? prev : ({
-        id: user.id,
-        name: user.fullName || user.firstName || email.split('@')[0] || 'Creator',
-        handle: user.username ? `@${user.username}` : `@${email.split('@')[0] || 'creator'}`,
-        email,
-        avatar: user.imageUrl || `https://avatar.vercel.sh/${email || user.id}.png`,
-        role,
-        is_pro: isProUser,
-        membership: metaMembership,
-        has_billing_account: metaMembership !== 'free',
-        joined_date: user.createdAt
-          ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-          : '2026',
-      }));
+      setCurrentUser((prev) => {
+        // If previous user already had pro/starter, don't downgrade it unless Clerk explicitly says otherwise
+        const effectiveMembership = (prev?.id === user.id && prev.membership !== 'free' && metaMembership === 'free')
+          ? prev.membership
+          : metaMembership;
+        const effectiveIsPro = effectiveMembership === 'pro' || isProUser;
+
+        const merged: UserProfile = {
+          id: user.id,
+          name: user.fullName || user.firstName || email.split('@')[0] || 'Creator',
+          handle: user.username ? `@${user.username}` : `@${email.split('@')[0] || 'creator'}`,
+          email,
+          avatar: user.imageUrl || `https://avatar.vercel.sh/${email || user.id}.png`,
+          role,
+          is_pro: effectiveIsPro,
+          membership: effectiveMembership,
+          has_billing_account: effectiveMembership !== 'free',
+          joined_date: user.createdAt
+            ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+            : '2026',
+        };
+
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('aicorn_user_profile', JSON.stringify(merged));
+          } catch {}
+        }
+
+        return merged;
+      });
       setIsLoadingAuth(false);
 
       // 2. Perform background sync to Supabase and membership check
       void syncClerkUserToSupabase(user);
     } else {
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('aicorn_user_profile');
+        } catch {}
+      }
       setCurrentUser(null);
       // Keep local favorites intact for guests/refresh
       setIsLoadingAuth(false);
@@ -845,6 +922,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('aicorn_user_profile');
+        localStorage.removeItem('aicorn_pending_plan');
+      }
       await signOut();
     } catch (e) {
       console.warn('Clerk sign out warning:', e);

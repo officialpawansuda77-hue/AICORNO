@@ -8,7 +8,7 @@ import { useAppStore } from '@/lib/store';
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
-  const { currentUser, openUpgradeModal } = useAppStore();
+  const { currentUser, openUpgradeModal, isLoadingAuth } = useAppStore();
 
   const isPro = currentUser?.role === 'admin' || currentUser?.is_pro || currentUser?.membership === 'pro';
 
@@ -95,6 +95,11 @@ export default function MobileBottomNav() {
               {currentUser.name.split(' ')[0]}
             </span>
           </Link>
+        ) : isLoadingAuth ? (
+          <div className="flex flex-col items-center justify-center py-1 text-[#8A867D] animate-pulse">
+            <div className="w-5 h-5 rounded-full bg-black/10" />
+            <span className="text-[10px] mt-0.5">...</span>
+          </div>
         ) : (
           <button
             type="button"

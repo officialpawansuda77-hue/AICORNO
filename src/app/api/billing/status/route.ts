@@ -29,10 +29,13 @@ export async function GET(request: Request) {
       const email = clerkUser.primaryEmailAddress?.emailAddress || '';
       isOwner = isEmailAdmin(email);
       const meta = (clerkUser.publicMetadata || {}) as Record<string, any>;
-      isClerkPro = isOwner || meta.membership === 'pro' || Boolean(meta.is_pro);
-      isClerkStarter = !isClerkPro && meta.membership === 'starter';
-      hasBillingAccount = Boolean(meta.has_billing_account || meta.dodo_customer_id || meta.dodo_subscription_id);
-    } catch {}
+      const membershipStr = String(meta.membership || '').toLowerCase().trim();
+      isClerkPro = isOwner || meta.role === 'admin' || membershipStr === 'pro' || Boolean(meta.is_pro);
+      isClerkStarter = !isClerkPro && membershipStr === 'starter';
+      hasBillingAccount = Boolean(meta.has_billing_account || meta.dodo_customer_id || meta.dodo_subscription_id || isClerkPro || isClerkStarter);
+    } catch (err) {
+      console.warn('[Status] Clerk getUser notice:', err);
+    }
 
     if (isOwner || isClerkPro) {
       return Response.json(
