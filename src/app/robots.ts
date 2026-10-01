@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-const siteUrl = 'https://aicorn-ai.vercel.app';
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.aicorn.co.in';
 
 export default function robots(): MetadataRoute.Robots {
   return {

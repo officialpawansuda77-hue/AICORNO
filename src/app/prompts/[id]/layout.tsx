@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { IMAGE_PROMPTS } from '@/data/imagePrompts';
 import { VIDEO_PROMPTS } from '@/data/videoPrompts';
+import { OPUS_5_5_VIDEOS } from '@/data/opusVideosData';
 
-const prompts = [...IMAGE_PROMPTS, ...VIDEO_PROMPTS];
+const prompts = [...IMAGE_PROMPTS, ...VIDEO_PROMPTS, ...OPUS_5_5_VIDEOS];
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;

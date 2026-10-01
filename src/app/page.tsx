@@ -11,7 +11,19 @@ import FAQSection from '@/components/home/FAQSection';
 import Link from 'next/link';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
 
-export const metadata: Metadata = { alternates: { canonical: '/' } };
+export const metadata: Metadata = {
+  title: 'AICORN — Premium AI Prompt & Agent Skill Gallery',
+  description:
+    'Curated photorealistic AI image prompts, cinematic video camera directions (Veo 3, Kling, Sora, Seedance), and production-grade Claude Code & Manus agent skills.',
+  alternates: { canonical: '/' },
+  openGraph: {
+    title: 'AICORN — Premium AI Prompt & Agent Skill Gallery',
+    description:
+      'Curated photorealistic AI image prompts, cinematic video camera directions, and production-grade agent skills.',
+    url: '/',
+    images: [{ url: '/og-image.png', width: 1024, height: 1024, alt: 'AICORN Homepage' }],
+  },
+};
 
 export default function HomePage() {
   return (

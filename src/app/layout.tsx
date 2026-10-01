@@ -17,20 +17,34 @@ export const viewport: Viewport = {
   maximumScale: 5,
 };
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.aicorn.co.in';
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.aicorn.co.in'),
+  metadataBase: new URL(siteUrl),
   title: {
     default: 'AICORN — Premium AI Prompt & Agent Skill Gallery',
     template: '%s — AICORN',
   },
   description:
-    'Discover high-quality AI image prompts, video prompts and agent skills. Preview the result, copy what works, and start creating.',
+    'Discover high-quality AI image prompts, cinematic video prompts and autonomous agent skills. Preview verified generations, copy cinematic camera prompts, and start creating.',
+  applicationName: 'AICORN',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   openGraph: {
     type: 'website',
     siteName: 'AICORN',
     title: 'AICORN — Premium AI Prompt & Agent Skill Gallery',
-    description: 'Curated AI image prompts, video prompts, and agent skills for creators.',
-    url: 'https://www.aicorn.co.in/',
+    description: 'Curated AI image prompts, video prompts, and autonomous agent skills for creative professionals.',
+    url: siteUrl,
     images: [{
       url: '/og-image.png',
       width: 1024,
@@ -41,22 +55,26 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'AICORN — Premium AI Prompt & Agent Skill Gallery',
-    description: 'Curated AI image prompts, video prompts, and agent skills for creators.',
+    description: 'Curated AI image prompts, video prompts, and autonomous agent skills for creators.',
     images: ['/og-image.png'],
   },
   keywords: [
     "AI prompts",
-    "image prompts",
-    "video prompts",
+    "AI video prompts",
+    "AI image prompts",
     "agent skills",
     "Veo 3",
-    "Midjourney",
-    "Sora",
-    "Kling",
-    "Claude Code",
-    "Flux",
+    "Midjourney v6",
+    "OpenAI Sora",
+    "Kling AI",
+    "Seedance",
+    "Flux.1 Pro",
+    "Claude Code skills",
+    "Manus agent skills",
+    "prompt engineering gallery",
   ],
-  authors: [{ name: "AICORN Curators" }],
+  authors: [{ name: "Pawan Suda", url: siteUrl }],
+  creator: "Pawan Suda",
   icons: {
     icon: [
       { url: '/icon.svg', type: 'image/svg+xml' },
@@ -65,7 +83,7 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.png',
   },
   alternates: {
-    canonical: 'https://www.aicorn.co.in',
+    canonical: siteUrl,
   },
 };
 
@@ -77,12 +95,41 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        '@id': `${siteUrl}/#website`,
+        'url': siteUrl,
+        'name': 'AICORN',
+        'description': 'Curated AI image prompts, video prompts, and autonomous agent skills for creators.',
+        'potentialAction': {
+          '@type': 'SearchAction',
+          'target': `${siteUrl}/prompts/image?search={search_term_string}`,
+          'query-input': 'required name=search_term_string',
+        },
+      },
+      {
+        '@type': 'Organization',
+        '@id': `${siteUrl}/#organization`,
+        'name': 'AICORN',
+        'url': siteUrl,
+        'logo': `${siteUrl}/logo.svg`,
+      },
+    ],
+  };
+
   return (
     <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
       <html lang="en" className={`${nunito.variable} scroll-smooth`}>
         <head>
           <link rel="icon" href="/icon.svg" type="image/svg+xml" />
           <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
         </head>
         <body className="min-h-screen flex flex-col bg-[#F7F4EE] text-[#1A1A1A] font-sans antialiased selection:bg-[#D8F651] selection:text-[#101010]">
           <ProvidersWrapper>{children}</ProvidersWrapper>
