@@ -11,7 +11,7 @@ export default function Footer() {
           <div className="md:col-span-2 space-y-4">
             <Link href="/" className="flex items-center gap-2.5">
               <img
-                src="/logo.png"
+                src="/logo.svg"
                 alt="AICORN"
                 className="w-8 h-8 rounded-xl object-cover shadow-sm"
               />
