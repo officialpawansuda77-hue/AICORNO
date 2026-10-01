@@ -18,7 +18,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://aicorn-ai.vercel.app'),
+  metadataBase: new URL('https://www.aicorn.co.in'),
   title: {
     default: 'AICORN — Premium AI Prompt & Agent Skill Gallery',
     template: '%s — AICORN',
@@ -59,14 +59,13 @@ export const metadata: Metadata = {
   authors: [{ name: "AICORN Curators" }],
   icons: {
     icon: [
-      { url: '/favicon.png', type: 'image/png' },
-      { url: '/favicon.ico' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
     ],
-    shortcut: '/favicon.png',
+    shortcut: '/icon.svg',
     apple: '/apple-touch-icon.png',
   },
   alternates: {
-    canonical: 'https://aicorn-ai.vercel.app',
+    canonical: 'https://www.aicorn.co.in',
   },
 };
 
@@ -82,7 +81,7 @@ export default function RootLayout({
     <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
       <html lang="en" className={`${nunito.variable} scroll-smooth`}>
         <head>
-          <link rel="icon" href="/favicon.png" type="image/png" />
+          <link rel="icon" href="/icon.svg" type="image/svg+xml" />
           <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         </head>
         <body className="min-h-screen flex flex-col bg-[#F7F4EE] text-[#1A1A1A] font-sans antialiased selection:bg-[#D8F651] selection:text-[#101010]">
