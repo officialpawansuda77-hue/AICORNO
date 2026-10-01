@@ -46,9 +46,9 @@ export const metadata: Metadata = {
     description: 'Curated AI image prompts, video prompts, and autonomous agent skills for creative professionals.',
     url: siteUrl,
     images: [{
-      url: '/og-image.png',
-      width: 1024,
-      height: 1024,
+      url: '/opengraph-image',
+      width: 1200,
+      height: 630,
       alt: 'AICORN — Premium AI Prompt & Agent Skill Gallery',
     }],
   },
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'AICORN — Premium AI Prompt & Agent Skill Gallery',
     description: 'Curated AI image prompts, video prompts, and autonomous agent skills for creators.',
-    images: ['/og-image.png'],
+    images: ['/opengraph-image'],
   },
   keywords: [
     "AI prompts",
