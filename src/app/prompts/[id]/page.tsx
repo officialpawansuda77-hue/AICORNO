@@ -89,6 +89,13 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
     }
   }, [prompt?.id, recordView]);
 
+  // Real tab title per prompt (client component: no generateMetadata here)
+  useEffect(() => {
+    if (prompt?.title) {
+      document.title = `${prompt.title} — AICORN`;
+    }
+  }, [prompt?.title]);
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -151,7 +158,7 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
     setPrompt((prev) => (prev ? { ...prev, copies: (prev.copies || 0) + 1 } : prev));
     addToast({
       title: 'Prompt copied to clipboard!',
-      message: 'Recorded copy event in Supabase.',
+      message: 'Paste it into your favorite AI model and create.',
       type: 'success',
     });
 
