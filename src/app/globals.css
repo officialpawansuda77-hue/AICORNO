@@ -84,12 +84,18 @@ body {
 .animate-marquee-left {
   display: flex;
   width: max-content;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
   animation: marquee-left 32s linear infinite;
 }
 
 .animate-marquee-right {
   display: flex;
   width: max-content;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
   animation: marquee-right 32s linear infinite;
 }
 

@@ -19,11 +19,20 @@ export default function HeroSection() {
     }));
   }, [prompts]);
 
-  const marqueeRow1 = useMemo(() => marqueeItems.slice(0, Math.max(1, Math.ceil(marqueeItems.length / 2))), [marqueeItems]);
-  const marqueeRow2 = useMemo(() => marqueeItems.slice(Math.ceil(marqueeItems.length / 2)), [marqueeItems]);
+  const marqueeRow1 = useMemo(() => {
+    const half = Math.max(1, Math.ceil(marqueeItems.length / 2));
+    let base = marqueeItems.slice(0, half);
+    while (base.length < 5) base = [...base, ...base];
+    return [...base, ...base];
+  }, [marqueeItems]);
 
-  const displayRow1 = useMemo(() => [...marqueeRow1, ...marqueeRow1, ...marqueeRow1].slice(0, 8), [marqueeRow1]);
-  const displayRow2 = useMemo(() => [...marqueeRow2, ...marqueeRow2, ...marqueeRow2].slice(0, 8), [marqueeRow2]);
+  const marqueeRow2 = useMemo(() => {
+    const half = Math.ceil(marqueeItems.length / 2);
+    let base = marqueeItems.slice(half);
+    if (base.length === 0) base = marqueeItems;
+    while (base.length < 5) base = [...base, ...base];
+    return [...base, ...base];
+  }, [marqueeItems]);
 
   return (
     <section className="relative overflow-hidden pt-12 pb-16 md:pt-18 md:pb-24 border-b border-[#E8E4DA]">
@@ -96,7 +105,7 @@ export default function HeroSection() {
 
           {/* Row 1 - moves left */}
           <div className="flex animate-marquee-left gap-2.5 sm:gap-4">
-            {displayRow1.map((item, idx) => (
+            {marqueeRow1.map((item, idx) => (
               <Link
                 key={`r1-${idx}`}
                 href={item.href}
@@ -133,7 +142,7 @@ export default function HeroSection() {
           {/* Row 2 - moves right */}
           {marqueeRow2.length > 0 && (
             <div className="flex animate-marquee-right gap-2.5 sm:gap-4">
-              {displayRow2.map((item, idx) => (
+              {marqueeRow2.map((item, idx) => (
                 <Link
                   key={`row2-${idx}`}
                   href={item.href}
@@ -143,6 +152,8 @@ export default function HeroSection() {
                     <img
                       src={item.img}
                       alt={item.title}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (

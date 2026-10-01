@@ -12,7 +12,7 @@ interface SkillCardProps {
   skill: Skill;
 }
 
-export default function SkillCard({ skill }: SkillCardProps) {
+function SkillCardComponent({ skill }: SkillCardProps) {
   const router = useRouter();
   const { toggleFavorite, isFavorite, incrementInstalls, addToast, openUpgradeModal, currentUser } = useAppStore();
   const [copied, setCopied] = useState(false);
@@ -84,6 +84,8 @@ export default function SkillCard({ skill }: SkillCardProps) {
         <img
           src={skill.preview_image}
           alt={skill.title}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover opacity-80 group-hover:scale-105 group-hover:opacity-95 transition-all duration-500"
         />
 
@@ -204,3 +206,6 @@ export default function SkillCard({ skill }: SkillCardProps) {
     </div>
   );
 }
+
+const SkillCard = React.memo(SkillCardComponent);
+export default SkillCard;

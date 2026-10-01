@@ -7,6 +7,7 @@ import FilterSidebar from '@/components/catalog/FilterSidebar';
 import CatalogToolbar from '@/components/catalog/CatalogToolbar';
 import PromptCard from '@/components/cards/PromptCard';
 import { fetchPromptsFromDb } from '@/lib/supabaseService';
+import { VIDEO_PROMPTS } from '@/data/videoPrompts';
 import { Prompt } from '@/types';
 import { Video, SlidersHorizontal, X, RotateCcw, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 
@@ -14,13 +15,6 @@ function VideoPromptsContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
-  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
-  const [prompts, setPrompts] = useState<Prompt[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
 
   const selectedCategory = searchParams.get('category') || undefined;
   const selectedModel = searchParams.get('model') || undefined;
@@ -32,8 +26,19 @@ function VideoPromptsContent() {
   const query = searchParams.get('q') || undefined;
   const currentPage = Number(searchParams.get('page')) || 1;
 
+  const hasFilters = Boolean(selectedCategory || selectedModel || selectedStyle || selectedRatio || selectedDuration || selectedPrice || query || currentPage > 1 || currentSort !== 'popular');
+
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const [prompts, setPrompts] = useState<Prompt[]>(() => hasFilters ? [] : VIDEO_PROMPTS);
+  const [totalCount, setTotalCount] = useState(() => hasFilters ? 0 : VIDEO_PROMPTS.length);
+  const [totalPages, setTotalPages] = useState(() => hasFilters ? 1 : Math.ceil(VIDEO_PROMPTS.length / 18) || 1);
+  const [isLoading, setIsLoading] = useState(() => hasFilters);
+  const [hasError, setHasError] = useState(false);
+
   const loadPrompts = async () => {
-    setIsLoading(true);
+    if (hasFilters || prompts.length === 0) {
+      setIsLoading(true);
+    }
     setHasError(false);
     try {
       const res = await fetchPromptsFromDb({
@@ -50,12 +55,16 @@ function VideoPromptsContent() {
         limit: 18,
       });
 
-      setPrompts(res.prompts);
-      setTotalCount(res.total);
-      setTotalPages(res.totalPages);
+      if (res && res.prompts) {
+        setPrompts(res.prompts);
+        setTotalCount(res.total);
+        setTotalPages(res.totalPages);
+      }
     } catch (err) {
       console.error('Failed to load video prompts:', err);
-      setHasError(true);
+      if (prompts.length === 0) {
+        setHasError(true);
+      }
     } finally {
       setIsLoading(false);
     }

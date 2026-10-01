@@ -23,11 +23,10 @@ interface PromptCardProps {
   priority?: boolean;
 }
 
-export default function PromptCard({ prompt, priority = false }: PromptCardProps) {
+function PromptCardComponent({ prompt, priority = false }: PromptCardProps) {
   const router = useRouter();
   const { prompts: storePrompts, toggleFavorite, isFavorite, incrementCopies, addToast, openUpgradeModal, currentUser } = useAppStore();
   const [copied, setCopied] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const [localCopies, setLocalCopies] = useState<number | null>(null);
 
   const favorited = isFavorite(prompt.id);
@@ -92,8 +91,6 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
 
   return (
     <div
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       className="aicorn-card group relative flex flex-col overflow-hidden bg-white cursor-pointer"
       role="link"
       tabIndex={0}
@@ -150,6 +147,7 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
                   alt={prompt.title}
                   className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                   loading={priority ? 'eager' : 'lazy'}
+                  decoding="async"
                   onError={(e) => {
                     const img = e.target as HTMLImageElement;
                     img.style.display = 'none';
@@ -173,6 +171,7 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
               alt={prompt.title}
               className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
               loading={priority ? 'eager' : 'lazy'}
+              decoding="async"
               onError={(e) => {
                 if ((e.target as HTMLImageElement).src !== 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop') {
                   (e.target as HTMLImageElement).src =
@@ -233,7 +232,7 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
 
         {/* Video Play Overlay Indicator */}
         {prompt.type === 'video' && (
-          <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 pointer-events-none ${isHovered ? 'opacity-90 scale-105' : 'opacity-0 scale-95'}`}>
+          <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 pointer-events-none opacity-0 scale-95 group-hover:opacity-90 group-hover:scale-105">
             <div className="w-14 h-14 rounded-full bg-[#101010]/80 text-[#D8F651] flex items-center justify-center backdrop-blur-md shadow-lg border border-white/20">
               <Play className="w-6 h-6 fill-[#D8F651] ml-0.5" />
             </div>
@@ -319,3 +318,6 @@ export default function PromptCard({ prompt, priority = false }: PromptCardProps
     </div>
   );
 }
+
+const PromptCard = React.memo(PromptCardComponent);
+export default PromptCard;

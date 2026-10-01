@@ -11,19 +11,23 @@ interface CategoryCardProps {
   category: Category;
 }
 
-export default function CategoryCard({ category }: CategoryCardProps) {
+function CategoryCardComponent({ category }: CategoryCardProps) {
   const { prompts, skills } = useAppStore();
 
-  const realPromptCount = prompts.filter(
-    (p) => isCategoryMatch(p.category, category.name) || isCategoryMatch(p.category, category.slug)
-  ).length;
+  const realPromptCount = React.useMemo(() => {
+    return prompts.filter(
+      (p) => isCategoryMatch(p.category, category.name) || isCategoryMatch(p.category, category.slug)
+    ).length;
+  }, [prompts, category.name, category.slug]);
 
-  const realSkillCount = skills.filter(
-    (s) =>
-      isCategoryMatch(s.category, category.name) ||
-      isCategoryMatch(s.category, category.slug) ||
-      s.tags.some((t) => isCategoryMatch(t, category.name) || isCategoryMatch(t, category.slug))
-  ).length;
+  const realSkillCount = React.useMemo(() => {
+    return skills.filter(
+      (s) =>
+        isCategoryMatch(s.category, category.name) ||
+        isCategoryMatch(s.category, category.slug) ||
+        s.tags.some((t) => isCategoryMatch(t, category.name) || isCategoryMatch(t, category.slug))
+    ).length;
+  }, [skills, category.name, category.slug]);
 
   return (
     <Link
@@ -37,6 +41,8 @@ export default function CategoryCard({ category }: CategoryCardProps) {
           <img
             src={category.featured_image}
             alt={category.name}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
           />
         </div>
@@ -65,3 +71,6 @@ export default function CategoryCard({ category }: CategoryCardProps) {
     </Link>
   );
 }
+
+const CategoryCard = React.memo(CategoryCardComponent);
+export default CategoryCard;

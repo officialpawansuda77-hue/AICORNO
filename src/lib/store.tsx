@@ -111,11 +111,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const { signOut, getToken } = useAuth();
   const { openSignIn, openSignUp } = useClerk();
 
-  const [prompts, setPrompts] = useState<Prompt[]>([]);
-  const [isLoadingPrompts, setIsLoadingPrompts] = useState(true);
+  // Pre-seed with canonical data so the UI renders in 0ms without waiting for network calls
+  const [prompts, setPrompts] = useState<Prompt[]>(() => [...IMAGE_PROMPTS, ...VIDEO_PROMPTS]);
+  const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
   const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [models, setModels] = useState<AIModel[]>(DEFAULT_MODELS);
-  const [skills, setSkills] = useState<Skill[]>([]);
+  const [skills, setSkills] = useState<Skill[]>(SKILLS_DATA);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [submissions, setSubmissions] = useState<UserSubmission[]>([]);
   const [recentCopies, setRecentCopies] = useState<{ id: string; title: string; type: string; timestamp: number }[]>([]);
@@ -155,137 +156,99 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return tier;
   }, [user?.id, user?.publicMetadata?.is_pro, user?.publicMetadata?.membership]);
 
-  // 1. Initial Load: Sync database categories, models, prompts, submissions from Supabase
+  // 1. Initial Load: Instant local hydration + background remote sync (Zero UI blocking)
   useEffect(() => {
     let isMounted = true;
 
-    async function loadData() {
-      setIsLoadingPrompts(true);
+    // A. Instant Local Hydration (0ms)
+    if (typeof window !== 'undefined') {
       try {
-        // Immediately initialize favorites from localStorage so UI is instant & persistent
-        let savedFavs: string[] = [];
-        if (typeof window !== 'undefined') {
-          try {
-            savedFavs = JSON.parse(localStorage.getItem('aicorn_favorites') || '[]');
-            if (isMounted && savedFavs.length > 0) {
-              setFavorites(savedFavs);
-            }
-          } catch {}
-          try {
-            const savedFeat = JSON.parse(localStorage.getItem('aicorn_home_featured') || '{}');
-            if (isMounted) setHomeFeaturedState(savedFeat);
-          } catch {}
-          try {
-            const savedBlog = JSON.parse(localStorage.getItem('aicorn_blog_posts') || '[]');
-            if (isMounted) setBlogPosts(savedBlog);
-          } catch {}
-        }
+        const savedFavs = JSON.parse(localStorage.getItem('aicorn_favorites') || '[]');
+        if (isMounted && savedFavs.length > 0) setFavorites(savedFavs);
+      } catch {}
+      try {
+        const savedFeat = JSON.parse(localStorage.getItem('aicorn_home_featured') || '{}');
+        if (isMounted && Object.keys(savedFeat).length > 0) setHomeFeaturedState(savedFeat);
+      } catch {}
+      try {
+        const savedBlog = JSON.parse(localStorage.getItem('aicorn_blog_posts') || '[]');
+        if (isMounted && savedBlog.length > 0) setBlogPosts(savedBlog);
+      } catch {}
 
-        const [cats, mods, promptsRes, subs] = await Promise.all([
-          fetchCategoriesFromDb(),
-          fetchModelsFromDb(),
+      // Hydrate custom prompts created by user/admin locally
+      try {
+        const localCustom: Prompt[] = JSON.parse(localStorage.getItem('aicorn_local_prompts') || '[]');
+        if (isMounted && localCustom.length > 0) {
+          setPrompts((prev) => {
+            const seen = new Set(prev.map((p) => p.id));
+            const uniqueExtra = localCustom.filter((p) => !seen.has(p.id));
+            return uniqueExtra.length > 0 ? [...uniqueExtra, ...prev] : prev;
+          });
+        }
+      } catch {}
+
+      // Hydrate custom skills created locally
+      try {
+        const localSkills: Skill[] = JSON.parse(localStorage.getItem('aicorn_local_skills') || '[]');
+        if (isMounted && localSkills.length > 0) {
+          setSkills((prev) => {
+            const seen = new Set(prev.map((s) => s.id));
+            const uniqueExtra = localSkills.filter((s) => !seen.has(s.id));
+            return uniqueExtra.length > 0 ? [...uniqueExtra, ...prev] : prev;
+          });
+        }
+      } catch {}
+
+      // Hydrate submissions
+      try {
+        const localSubs: UserSubmission[] = JSON.parse(localStorage.getItem('aicorn_local_submissions') || '[]');
+        if (isMounted && localSubs.length > 0) {
+          setSubmissions((prev) => {
+            const seen = new Set(prev.map((s) => s.id));
+            const uniqueExtra = localSubs.filter((s) => !seen.has(s.id));
+            return uniqueExtra.length > 0 ? [...uniqueExtra, ...prev] : prev;
+          });
+        }
+      } catch {}
+    }
+
+    // B. Background Remote Sync (Non-blocking: page already has all canonical content)
+    async function backgroundSync() {
+      try {
+        const [promptsRes, subs] = await Promise.allSettled([
           fetchPromptsFromDb({ limit: 100 }),
           fetchSubmissionsFromDb(),
         ]);
 
-        if (isMounted) {
-          let localCustom: Prompt[] = [];
-          if (typeof window !== 'undefined') {
-            try {
-              localCustom = JSON.parse(localStorage.getItem('aicorn_local_prompts') || '[]');
-            } catch {
-              // ignore
+        if (!isMounted) return;
+
+        if (promptsRes.status === 'fulfilled' && promptsRes.value?.prompts && promptsRes.value.prompts.length > 0) {
+          setPrompts((prev) => {
+            const map = new Map<string, Prompt>();
+            // Keep remote prompts
+            for (const p of promptsRes.value.prompts) map.set(p.id, p);
+            // Keep local custom prompts
+            for (const p of prev) {
+              if (!map.has(p.id)) map.set(p.id, p);
             }
-          }
-
-          const basePrompts = (promptsRes?.prompts && promptsRes.prompts.length > 0)
-            ? promptsRes.prompts
-            : [];
-
-          // Deduplicate prompts by ID and title+preview_url, prioritizing DB prompts
-          const seen = new Set<string>();
-          const seenContent = new Set<string>();
-          const loadedPrompts: Prompt[] = [];
-          for (const p of [...basePrompts, ...localCustom]) {
-            const contentKey = `${p.title.trim().toLowerCase()}::${p.preview_url}`;
-            if (!seen.has(p.id) && !seenContent.has(contentKey)) {
-              seen.add(p.id);
-              seenContent.add(contentKey);
-              loadedPrompts.push(p);
-            }
-          }
-
-          // Merge persistent copies, views, and favorites counts from localStorage
-          let promptStats: Record<string, { copies?: number; views?: number; favorites?: number }> = {};
-          if (typeof window !== 'undefined') {
-            try {
-              promptStats = JSON.parse(localStorage.getItem('aicorn_prompt_stats') || '{}');
-            } catch {}
-          }
-
-          const finalPrompts = loadedPrompts.map((p) => {
-            const st = promptStats[p.id];
-            const recoveredVideoUrl = p.video_url || (p.type === 'video' && isDirectVideoUrl(p.preview_url) ? p.preview_url : undefined);
-            return {
-              ...p,
-              video_url: recoveredVideoUrl,
-              copies: st?.copies !== undefined ? st.copies : p.copies,
-              views: st?.views !== undefined ? st.views : p.views,
-              favorites: st?.favorites !== undefined ? st.favorites : p.favorites,
-            };
+            return Array.from(map.values());
           });
-
-          // Load skills (only real user and admin uploaded skills, NO fake demo skills)
-          let localSkills: Skill[] = [];
-          if (typeof window !== 'undefined') {
-            try {
-              localSkills = JSON.parse(localStorage.getItem('aicorn_local_skills') || '[]');
-            } catch {
-              // ignore
-            }
-          }
-          const allSkills = [...localSkills];
-          const seenSkills = new Set<string>();
-          setSkills(allSkills.filter((s) => {
-            if (seenSkills.has(s.id)) return false;
-            seenSkills.add(s.id);
-            return true;
-          }));
-
-          // Load submissions (database + local submissions)
-          let localSubs: UserSubmission[] = [];
-          if (typeof window !== 'undefined') {
-            try {
-              localSubs = JSON.parse(localStorage.getItem('aicorn_local_submissions') || '[]');
-            } catch {
-              // ignore
-            }
-          }
-          const allSubs = [...localSubs, ...(subs || [])];
-          const seenSubs = new Set<string>();
-          setSubmissions(allSubs.filter((s) => {
-            if (seenSubs.has(s.id)) return false;
-            seenSubs.add(s.id);
-            return true;
-          }));
-
-          setPrompts(finalPrompts);
-          setCategories((cats && cats.length > 0 ? cats : DEFAULT_CATEGORIES).map((category) => ({
-            ...category,
-            prompt_count: finalPrompts.filter((prompt) =>
-              prompt.category === category.name || prompt.category === category.slug
-            ).length,
-          })));
-          if (mods && mods.length > 0) setModels(mods);
         }
-      } catch (e) {
-        console.warn('Initial Supabase sync fallback:', e);
-      } finally {
-        if (isMounted) setIsLoadingPrompts(false);
+
+        if (subs.status === 'fulfilled' && subs.value && subs.value.length > 0) {
+          setSubmissions((prev) => {
+            const seen = new Set(prev.map((s) => s.id));
+            const extra = subs.value.filter((s) => !seen.has(s.id));
+            return extra.length > 0 ? [...prev, ...extra] : prev;
+          });
+        }
+      } catch (err) {
+        console.warn('[Sync Notice]:', err);
       }
     }
 
-    loadData();
+    void backgroundSync();
+
     return () => {
       isMounted = false;
     };
