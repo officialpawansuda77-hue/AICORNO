@@ -9,6 +9,7 @@ import { IMAGE_PROMPTS } from '@/data/imagePrompts';
 import { VIDEO_PROMPTS } from '@/data/videoPrompts';
 import { OPUS_5_5_VIDEOS } from '@/data/opusVideosData';
 import { SKILLS_DATA } from '@/data/skillsData';
+import { BLOG_POSTS } from '@/data/blogData';
 import { CATEGORIES as DEFAULT_CATEGORIES, AI_MODELS as DEFAULT_MODELS } from '@/data/categoriesModels';
 import { isDirectVideoUrl } from './mediaUtils';
 import { supabase } from './supabase';
@@ -147,8 +148,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Home Featured Prompts
   const [homeFeatured, setHomeFeaturedState] = useState<{ imagePromptId?: string; videoPromptId?: string; skillId?: string }>({});
 
-  // Dynamic Blog & Social Posts
-  const [blogPosts, setBlogPosts] = useState<BlogPostItem[]>([]);
+  // Dynamic Blog & Social Posts — seeded from the curated local catalog so the
+  // blog index never renders empty; admin-added posts (localStorage) override.
+  const [blogPosts, setBlogPosts] = useState<BlogPostItem[]>(() =>
+    BLOG_POSTS.map((p) => ({
+      id: p.slug,
+      title: p.title,
+      description: p.excerpt,
+      url: `/blog/${p.slug}`,
+      platform: 'blog' as const,
+      date: p.date,
+      tag: p.category,
+    }))
+  );
 
   const refreshMembership = useCallback(async (optimisticTier?: 'free' | 'starter' | 'pro'): Promise<'free' | 'starter' | 'pro'> => {
     if (!user?.id) throw new Error('Sign in required');
