@@ -243,7 +243,19 @@ export async function fetchPromptsFromDb(params: FetchPromptsParams = {}): Promi
           return true;
         });
 
-      let filteredResults = dbPrompts;
+      // Merge the curated local catalog with DB rows so listings, search,
+      // trending and counts always include verified prompts even when the DB
+      // has rows. DB rows win on id/content conflicts (dedupe via `seen`).
+      const localExtra = CANONICAL_PROMPTS.filter((lp) => {
+        const key = lp.id;
+        const contentKey = `${lp.title.trim().toLowerCase()}::${lp.preview_url}`;
+        if (seen.has(key) || seen.has(contentKey)) return false;
+        seen.add(key);
+        seen.add(contentKey);
+        return true;
+      });
+
+      let filteredResults = [...dbPrompts, ...localExtra];
 
       // Type filter
       if (type) {
