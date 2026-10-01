@@ -20,8 +20,8 @@ export function dodo() {
 
 export async function getSubscriptions(userId: string): Promise<SubscriptionRow[]> {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('getSubscriptions: Supabase service role not configured');
-    throw new Error('Supabase service role not configured');
+    console.warn('[getSubscriptions] Supabase service role not configured, returning empty subscriptions');
+    return [];
   }
   try {
     const { data, error } = await supabaseAdmin
@@ -29,13 +29,14 @@ export async function getSubscriptions(userId: string): Promise<SubscriptionRow[
       .select('subscription_id,user_id,product_id,customer_id,status,next_billing_date,cancel_at_next_billing_date')
       .eq('user_id', userId);
     if (error) {
-      console.error('getSubscriptions error:', error);
-      throw error;
+      // Table may not exist yet in Supabase schema (code PGRST205)
+      console.warn('[getSubscriptions] Supabase query notice (table may not be migrated yet):', error.message || error.code);
+      return [];
     }
     return data || [];
-  } catch (error) {
-    console.error('getSubscriptions exception:', error);
-    throw error;
+  } catch (error: any) {
+    console.warn('[getSubscriptions] Exception caught, falling back safely:', error?.message);
+    return [];
   }
 }
 

@@ -18,15 +18,20 @@ export async function GET(request: Request) {
 
   if (!userId) return Response.json({ error: 'Sign in required.' }, { status: 401 });
   try {
-    // Check Clerk user metadata & email first
     let isClerkPro = false;
+    let isClerkStarter = false;
     let isOwner = false;
+    let hasBillingAccount = false;
+
     try {
       const clerk = await clerkClient();
       const clerkUser = await clerk.users.getUser(userId);
       const email = clerkUser.primaryEmailAddress?.emailAddress || '';
       isOwner = isEmailAdmin(email);
-      isClerkPro = isOwner || clerkUser.publicMetadata?.membership === 'pro' || Boolean(clerkUser.publicMetadata?.is_pro);
+      const meta = (clerkUser.publicMetadata || {}) as Record<string, any>;
+      isClerkPro = isOwner || meta.membership === 'pro' || Boolean(meta.is_pro);
+      isClerkStarter = !isClerkPro && meta.membership === 'starter';
+      hasBillingAccount = Boolean(meta.has_billing_account || meta.dodo_customer_id || meta.dodo_subscription_id);
     } catch {}
 
     if (isOwner || isClerkPro) {
@@ -36,12 +41,19 @@ export async function GET(request: Request) {
       );
     }
 
+    if (isClerkStarter) {
+      return Response.json(
+        { tier: 'starter', hasBillingAccount: true },
+        { headers: { 'Cache-Control': 'private, no-store' } }
+      );
+    }
+
     const rows = await getSubscriptions(userId);
     const tier = membershipFor(rows);
-    const hasBillingAccount = rows.some((row) => Boolean(row.customer_id));
+    const hasBilling = hasBillingAccount || rows.some((row) => Boolean(row.customer_id));
 
     return Response.json(
-      { tier, hasBillingAccount },
+      { tier, hasBillingAccount: hasBilling },
       { headers: { 'Cache-Control': 'private, no-store' } }
     );
   } catch (error) {

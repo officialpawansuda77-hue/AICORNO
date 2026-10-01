@@ -26,13 +26,36 @@ export default function CheckoutReturnPage() {
     } catch {}
   }, []);
 
-  // Membership status verification
+  // Membership status verification & immediate transaction sync
   useEffect(() => {
     if (!currentUser) return;
     let stopped = false;
     let count = 0;
 
     const check = async () => {
+      // 1. If URL has subscription_id or payment_id from Dodo, sync with server immediately
+      if (typeof window !== 'undefined' && count === 0) {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const subscriptionId = params.get('subscription_id');
+          const paymentId = params.get('payment_id');
+          if (subscriptionId || paymentId) {
+            await fetch('/api/billing/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                subscriptionId,
+                paymentId,
+                userId: currentUser.id,
+              }),
+            });
+          }
+        } catch (syncErr) {
+          console.warn('[Checkout Return] Sync notice:', syncErr);
+        }
+      }
+
+      // 2. Refresh local state
       try {
         const tier = await refreshMembership();
         if (stopped) return;
@@ -44,7 +67,7 @@ export default function CheckoutReturnPage() {
 
       if (stopped) return;
       setStatus('waiting');
-      if (++count < 6) timer = setTimeout(check, 4000);
+      if (++count < 8) timer = setTimeout(check, 3000);
     };
 
     let timer: ReturnType<typeof setTimeout>;

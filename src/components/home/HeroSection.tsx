@@ -1,23 +1,30 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Sparkles, Bot, Image as ImageIcon } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 
 export default function HeroSection() {
   const { prompts } = useAppStore();
-  const marqueeItems = prompts.map((prompt) => ({
-    id: prompt.id,
-    title: prompt.title,
-    tag: prompt.category,
-    model: prompt.model,
-    img: prompt.preview_url,
-    href: `/prompts/${prompt.id}`,
-  }));
 
-  const marqueeRow1 = marqueeItems.slice(0, Math.max(1, Math.ceil(marqueeItems.length / 2)));
-  const marqueeRow2 = marqueeItems.slice(Math.ceil(marqueeItems.length / 2));
+  const marqueeItems = useMemo(() => {
+    return prompts.map((prompt) => ({
+      id: prompt.id,
+      title: prompt.title,
+      tag: prompt.category,
+      model: prompt.model,
+      img: prompt.preview_url,
+      href: `/prompts/${prompt.id}`,
+    }));
+  }, [prompts]);
+
+  const marqueeRow1 = useMemo(() => marqueeItems.slice(0, Math.max(1, Math.ceil(marqueeItems.length / 2))), [marqueeItems]);
+  const marqueeRow2 = useMemo(() => marqueeItems.slice(Math.ceil(marqueeItems.length / 2)), [marqueeItems]);
+
+  const displayRow1 = useMemo(() => [...marqueeRow1, ...marqueeRow1, ...marqueeRow1].slice(0, 8), [marqueeRow1]);
+  const displayRow2 = useMemo(() => [...marqueeRow2, ...marqueeRow2, ...marqueeRow2].slice(0, 8), [marqueeRow2]);
+
   return (
     <section className="relative overflow-hidden pt-12 pb-16 md:pt-18 md:pb-24 border-b border-[#E8E4DA]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
@@ -89,7 +96,7 @@ export default function HeroSection() {
 
           {/* Row 1 - moves left */}
           <div className="flex animate-marquee-left gap-2.5 sm:gap-4">
-            {[...marqueeRow1, ...marqueeRow1, ...marqueeRow1].slice(0, 12).map((item, idx) => (
+            {displayRow1.map((item, idx) => (
               <Link
                 key={`r1-${idx}`}
                 href={item.href}
@@ -99,6 +106,8 @@ export default function HeroSection() {
                   <img
                     src={item.img}
                     alt={item.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 ) : (
@@ -124,7 +133,7 @@ export default function HeroSection() {
           {/* Row 2 - moves right */}
           {marqueeRow2.length > 0 && (
             <div className="flex animate-marquee-right gap-2.5 sm:gap-4">
-              {[...marqueeRow2, ...marqueeRow2, ...marqueeRow2].slice(0, 12).map((item, idx) => (
+              {displayRow2.map((item, idx) => (
                 <Link
                   key={`row2-${idx}`}
                   href={item.href}

@@ -34,22 +34,38 @@ const PRICING_FAQS = [
 ];
 
 export default function PricingPage() {
-  const { addToast, openUpgradeModal, currentUser } = useAppStore();
+  const { addToast, setAuthModalOpen, currentUser } = useAppStore();
   const { getToken } = useAuth();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [workingPlan, setWorkingPlan] = useState<'starter' | 'pro' | 'portal' | null>(null);
   const [mobilePlanTab, setMobilePlanTab] = useState<'all' | 'free' | 'starter' | 'pro'>('all');
 
-  const isProActive = Boolean(currentUser && (currentUser.role === 'admin' || currentUser.is_pro || currentUser.membership === 'pro'));
-  const isStarterActive = Boolean(currentUser && !isProActive && currentUser.membership === 'starter');
-  const isFreeActive = Boolean(currentUser && !isProActive && !isStarterActive);
+  const isOwnerAdmin = Boolean(currentUser && currentUser.role === 'admin');
+  const isPaidPro = Boolean(currentUser && (currentUser.membership === 'pro' || currentUser.is_pro) && !isOwnerAdmin);
+  const isStarterActive = Boolean(currentUser && currentUser.membership === 'starter' && !isOwnerAdmin);
+  const isProActive = Boolean(isPaidPro || isOwnerAdmin);
+  const isFreeActive = Boolean(currentUser && !isPaidPro && !isStarterActive && !isOwnerAdmin);
 
   const beginBilling = async (path: 'checkout' | 'portal', plan?: 'starter' | 'pro') => {
     if (!currentUser) {
       if (typeof window !== 'undefined' && plan) {
         localStorage.setItem('aicorn_pending_plan', plan);
       }
-      openUpgradeModal({ reason: 'signin' });
+      setAuthModalOpen(true);
+      addToast({
+        title: `Plan Selected: ${plan === 'pro' ? 'Pro Unlimited ($9.99/mo)' : 'Starter ($4.49/mo)'}`,
+        message: 'Sign in to continue. You will be redirected to secure checkout automatically!',
+        type: 'info',
+      });
+      return;
+    }
+
+    if (path === 'portal' && isOwnerAdmin) {
+      addToast({
+        title: 'Administrator Account',
+        message: 'You have full unrestricted administrator access. The billing portal is for paying subscribers.',
+        type: 'info',
+      });
       return;
     }
 
@@ -237,12 +253,12 @@ export default function PricingPage() {
 
             <button
               onClick={() => {
-                if (!currentUser) openUpgradeModal({ reason: 'signin' });
+                if (!currentUser) setAuthModalOpen(true);
               }}
-              disabled={isFreeActive || isProActive || isStarterActive}
+              disabled={Boolean(currentUser)}
               className="pill-btn w-full mt-6 sm:mt-8 py-3 sm:py-3.5 rounded-full bg-[#F7F4EE] hover:bg-[#EAE6DC] text-[#101010] font-extrabold text-xs transition-colors border border-[#E8E4DA] disabled:opacity-60"
             >
-              {isFreeActive ? 'Current Active Plan' : isProActive || isStarterActive ? 'Included in Your Plan' : 'Start Free'}
+              {!currentUser ? 'Start Free' : isFreeActive ? 'Current Active Plan' : 'Included in Your Plan'}
             </button>
           </div>
 
@@ -291,7 +307,7 @@ export default function PricingPage() {
 
             <button
               onClick={() => beginBilling('checkout', 'starter')}
-              disabled={workingPlan !== null || isStarterActive || isProActive}
+              disabled={workingPlan !== null || isStarterActive || (isPaidPro && !isOwnerAdmin)}
               className="pill-btn w-full mt-6 sm:mt-8 py-3 sm:py-3.5 rounded-full bg-[#101010] hover:bg-[#252525] text-white font-extrabold text-xs shadow-md transition-all disabled:opacity-50"
             >
               {workingPlan === 'starter' ? (
@@ -301,8 +317,10 @@ export default function PricingPage() {
                 </span>
               ) : isStarterActive ? (
                 'Current Active Plan'
-              ) : isProActive ? (
+              ) : isPaidPro ? (
                 'Included in Pro Unlimited'
+              ) : isOwnerAdmin ? (
+                'Test Starter Checkout ($4.49/mo)'
               ) : (
                 'Get Starter Access ($4.49/mo)'
               )}
@@ -356,7 +374,7 @@ export default function PricingPage() {
 
             <button
               onClick={() => beginBilling('checkout', 'pro')}
-              disabled={workingPlan !== null || isProActive}
+              disabled={workingPlan !== null || (isPaidPro && !isOwnerAdmin)}
               className="pill-btn w-full mt-6 sm:mt-8 py-3 sm:py-3.5 rounded-full bg-[#D8F651] hover:bg-[#C5E53E] text-[#101010] font-black text-xs shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {workingPlan === 'pro' ? (
@@ -364,8 +382,18 @@ export default function PricingPage() {
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span>Opening Dodo Checkout...</span>
                 </span>
-              ) : isProActive ? (
+              ) : isPaidPro ? (
                 'Current Active Plan'
+              ) : isStarterActive ? (
+                <>
+                  <span>Upgrade to Pro ($9.99/mo)</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              ) : isOwnerAdmin ? (
+                <>
+                  <span>Test Pro Checkout ($9.99/mo)</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
               ) : (
                 <>
                   <span>Get Pro Unlimited ($9.99/mo)</span>

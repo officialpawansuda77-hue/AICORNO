@@ -136,7 +136,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const refreshMembership = useCallback(async (): Promise<'free' | 'starter' | 'pro'> => {
     if (!user?.id) throw new Error('Sign in required');
-    const response = await fetch('/api/billing/status', { cache: 'no-store' });
+    const response = await fetch(`/api/billing/status?userId=${encodeURIComponent(user.id)}`, { cache: 'no-store' });
     if (!response.ok) throw new Error('Membership status unavailable');
     const { tier, hasBillingAccount } = await response.json();
     if (tier !== 'free' && tier !== 'starter' && tier !== 'pro') throw new Error('Invalid membership status');
@@ -788,7 +788,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return updated;
     });
     addToast({ title: 'Update Published!', message: `"${item.title}" added to posts.`, type: 'success' });
-  }, [addToast]);
+  }, []);
 
   const deleteBlogPostItem = useCallback((id: string) => {
     setBlogPosts((prev) => {
@@ -801,7 +801,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return updated;
     });
     addToast({ title: 'Post Deleted', type: 'info' });
-  }, [addToast]);
+  }, []);
 
   // Submissions (Supabase + Local)
   const addSubmission = useCallback(async (data: Omit<UserSubmission, 'id' | 'created_at' | 'status'>) => {

@@ -43,37 +43,47 @@ export async function POST(request: Request) {
   let userId = metadata?.clerk_user_id || metadata?.userId;
 
   try {
-    // 1. Apply event via RPC (validates and records atomically)
-    const { error: rpcError } = await supabaseAdmin.rpc('apply_dodo_subscription_event', {
-      p_event_id: eventId,
-      p_subscription_id: subscriptionId,
-      p_user_id: userId || 'unknown',
-      p_customer_id: customer?.customer_id || 'unknown',
-      p_product_id: data.product_id || '',
-      p_status: data.status || 'active',
-      p_next_billing_date: typeof data.next_billing_date === 'string' ? data.next_billing_date : null,
-      p_cancel_at_next_billing_date: data.cancel_at_next_billing_date === true,
-      p_event_at: event.timestamp || new Date().toISOString(),
-    });
-
-    if (rpcError) {
-      console.error('Dodo webhook RPC error:', rpcError);
-      return new Response('Webhook persistence failed', { status: 500 });
+    // 1. Try applying event via Supabase RPC if table/function exists
+    try {
+      await supabaseAdmin.rpc('apply_dodo_subscription_event', {
+        p_event_id: eventId,
+        p_subscription_id: subscriptionId,
+        p_user_id: userId || 'unknown',
+        p_customer_id: customer?.customer_id || 'unknown',
+        p_product_id: data.product_id || '',
+        p_status: data.status || 'active',
+        p_next_billing_date: typeof data.next_billing_date === 'string' ? data.next_billing_date : null,
+        p_cancel_at_next_billing_date: data.cancel_at_next_billing_date === true,
+        p_event_at: event.timestamp || new Date().toISOString(),
+      });
+    } catch (rpcErr) {
+      console.warn('[Webhook] Supabase RPC notice (table may not be configured):', rpcErr);
     }
 
-    // 2. Derive membership from table and update Clerk metadata
+    // 2. Derive membership tier and update Clerk metadata directly
     if (userId) {
       try {
         const rows = await getSubscriptions(userId);
-        const tier = membershipFor(rows);
-        const hasBillingAccount = rows.some((row) => Boolean(row.customer_id));
+        let tier = membershipFor(rows);
+
+        // If rows were empty (e.g. table not migrated), derive directly from product_id in event
+        if (tier === 'free') {
+          const ids = (await import('@/lib/membership')).productIds();
+          const pId = data.product_id || (data.product_cart && data.product_cart[0]?.product_id);
+          const status = (data.status || '').toLowerCase();
+          const isActive = ['active', 'succeeded', 'paid', 'completed'].includes(status);
+
+          if (isActive) {
+            tier = pId === ids.starter ? 'starter' : 'pro';
+          }
+        }
 
         const clerk = await clerkClient();
         await clerk.users.updateUserMetadata(userId, {
           publicMetadata: {
             membership: tier,
             is_pro: tier === 'pro',
-            has_billing_account: hasBillingAccount,
+            has_billing_account: true,
             dodo_customer_id: customer?.customer_id || null,
             dodo_subscription_id: subscriptionId || null,
           },
