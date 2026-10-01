@@ -52,11 +52,12 @@ test('only the exact owner email has admin privileges', () => {
 });
 
 test('Starter copies premium images only; Pro also copies premium videos', () => {
-  const premiumImage = IMAGE_PROMPTS.find((prompt) => prompt.is_pro)!;
-  const premiumVideo = VIDEO_PROMPTS.find((prompt) => prompt.is_pro)!;
+  const premiumImage = { is_pro: true, type: 'image' } as any;
+  const premiumVideo = { is_pro: true, type: 'video' } as any;
+  const freePrompt = { is_pro: false, type: 'image' } as any;
   assert.equal(canCopyPrompt(premiumImage, null), false);
   assert.equal(canCopyPrompt(premiumImage, user('starter')), true);
   assert.equal(canCopyPrompt(premiumVideo, user('starter')), false);
   assert.equal(canCopyPrompt(premiumVideo, user('pro')), true);
-  assert.equal(canCopyPrompt(IMAGE_PROMPTS.find((prompt) => !prompt.is_pro)!, null), true);
+  assert.equal(canCopyPrompt(freePrompt, null), true);
 });

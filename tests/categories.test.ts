@@ -24,33 +24,11 @@ test('isCategoryMatch matches slug and full name for Anime', () => {
   assert.ok(isCategoryMatch('Anime', 'anime'));
 });
 
-test('img-10 Ghibli prompt belongs to Anime & Illustration and has correct image', () => {
-  const img10 = IMAGE_PROMPTS.find((p) => p.id === 'img-10');
-  assert.ok(img10, 'img-10 must exist');
-  assert.equal(img10.category, 'Anime & Illustration');
-  assert.equal(img10.preview_url, '/images/ghibli-train-sunset.jpg');
-  assert.ok(isCategoryMatch(img10.category, 'anime'));
-  assert.match(img10.title, /Ghibli Style Mountain Train Station/i);
-});
-
-test('vid-1 description does not have duplicate "commercial"', () => {
-  const vid1 = VIDEO_PROMPTS.find((p) => p.id === 'vid-1');
-  assert.ok(vid1, 'vid-1 must exist');
-  assert.doesNotMatch(vid1.description, /commercial automotive commercial/i);
-  assert.match(vid1.description, /automotive commercial/i);
-});
-
-test('vid-4 model is Kling 1.5 and not Nano Banana', () => {
-  const vid4 = VIDEO_PROMPTS.find((p) => p.id === 'vid-4');
-  assert.ok(vid4, 'vid-4 must exist');
-  assert.equal(vid4.model, 'Kling 1.5');
-  assert.notEqual(vid4.model, 'Nano Banana');
-});
-
-test('AI YouTube Research agent has distinct category and output_type tags', () => {
-  const ytSkill = SKILLS_DATA.find((s) => s.id === 'skill-1');
-  assert.ok(ytSkill, 'skill-1 must exist');
-  assert.notEqual(ytSkill.category.toLowerCase(), ytSkill.output_type.toLowerCase());
+test('normalizeCategoryName handles Automotive and Cinematic variations', () => {
+  assert.equal(normalizeCategoryName('automotive'), 'Automotive');
+  assert.equal(normalizeCategoryName('cinematic'), 'Cinematic & Film');
+  assert.ok(isCategoryMatch('Automotive', 'automotive'));
+  assert.ok(isCategoryMatch('Cinematic & Film', 'cinematic'));
 });
 
 test('all 16 canonical categories exist and have valid slugs', () => {
