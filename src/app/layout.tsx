@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     siteName: 'AICORN',
     title: 'AICORN — Premium AI Prompt & Agent Skill Gallery',
     description: 'Curated AI image prompts, video prompts, and agent skills for creators.',
-    url: 'https://aicorn-ai.vercel.app/',
+    url: 'https://www.aicorn.co.in/',
     images: [{
       url: '/og-image.png',
       width: 1024,
