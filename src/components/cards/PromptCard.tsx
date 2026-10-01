@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { Prompt } from '@/types';
 import { useAppStore } from '@/lib/store';
-import { normalizeCategoryName } from '@/lib/categories';
 import { canCopyPrompt } from '@/lib/membership';
 import { parseMediaUrl, isDirectVideoUrl } from '@/lib/mediaUtils';
 import confetti from 'canvas-confetti';
@@ -91,7 +90,7 @@ function PromptCardComponent({ prompt, priority = false }: PromptCardProps) {
 
   return (
     <div
-      className="aicorn-card group relative flex flex-col overflow-hidden bg-white cursor-pointer"
+      className="aicorn-card group relative flex flex-col overflow-hidden bg-white cursor-pointer h-fit"
       role="link"
       tabIndex={0}
       aria-label={`Open ${prompt.title}`}
@@ -247,38 +246,21 @@ function PromptCardComponent({ prompt, priority = false }: PromptCardProps) {
         </div>
       </div>
 
-      {/* METADATA CONTENT */}
-      <div className="p-4 flex-1 flex flex-col justify-between gap-3">
-        <div>
-          {/* Category & Model Line */}
-          <div className="flex items-center justify-between gap-2 mb-1.5">
-            <span className="text-[11px] font-bold text-[#8A867D]">
-              {normalizeCategoryName(prompt.category)}
-            </span>
-            <span className="text-[11px] font-bold text-[#101010] bg-[#F7F4EE] px-2 py-0.5 rounded-full border border-[#E8E4DA]">
-              {prompt.model}
-            </span>
-          </div>
-
-          {/* Title */}
-          <h3 className="font-extrabold text-[#1A1A1A] text-base leading-snug line-clamp-1 group-hover:text-black">
-            <Link
-              href={`/prompts/${prompt.id}`}
-              onClick={(event) => event.stopPropagation()}
-              className="hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#101010] rounded"
-            >
-              {prompt.title}
-            </Link>
-          </h3>
-
-          {/* Prompt excerpt snippet */}
-          <p className="text-xs text-[#8A867D] line-clamp-2 mt-1 font-medium leading-relaxed">
-            {prompt.description || prompt.prompt}
-          </p>
-        </div>
+      {/* COMPACT CARD CONTENT: Title + Action Bar */}
+      <div className="p-3.5 sm:p-4 flex flex-col gap-2.5 sm:gap-3">
+        {/* Title */}
+        <h3 className="font-extrabold text-[#1A1A1A] text-sm sm:text-base leading-snug line-clamp-1 group-hover:text-black">
+          <Link
+            href={`/prompts/${prompt.id}`}
+            onClick={(event) => event.stopPropagation()}
+            className="hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#101010] rounded"
+          >
+            {prompt.title}
+          </Link>
+        </h3>
 
         {/* BOTTOM ACTION BAR */}
-        <div className="pt-2 border-t border-[#F0EDE6] flex items-center justify-between gap-2">
+        <div className="pt-2.5 border-t border-[#F0EDE6] flex items-center justify-between gap-2">
           {/* Copy Prompt Button */}
           <button
             onClick={handleCopy}
@@ -313,7 +295,6 @@ function PromptCardComponent({ prompt, priority = false }: PromptCardProps) {
             <span>{formatCount(displayCopies)}{' '}copies</span>
           </div>
         </div>
-
       </div>
     </div>
   );
