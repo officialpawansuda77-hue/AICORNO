@@ -125,7 +125,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search Supabase database (e.g. 'cinematic car', 'veo 3', 'skincare')..."
+            placeholder="Search prompts, skills & categories (e.g. 'cinematic car', 'veo 3', 'skincare')..."
             className="flex-1 bg-transparent text-base text-[#1A1A1A] placeholder:text-[#8A867D] focus:outline-none"
           />
           {query && (
@@ -373,7 +373,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                   >
                     <div>
                       <h4 className="text-xs font-bold text-[#101010]">{c.name}</h4>
-                      <p className="text-[10px] text-[#8A867D]">{getCategoryPromptCount(c)} prompts</p>
+                      <p className="text-[10px] text-[#8A867D]">{(() => { const n = getCategoryPromptCount(c); return `${n} prompt${n === 1 ? '' : 's'}`; })()}</p>
                     </div>
                     <ArrowRight className="w-3.5 h-3.5 text-[#8A867D] group-hover:translate-x-0.5 transition-transform" />
                   </button>
@@ -400,7 +400,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
             <span>Press <kbd className="px-1.5 py-0.5 bg-white border border-[#DDD8CD] rounded font-mono text-[10px] text-[#1A1A1A]">ESC</kbd> to exit</span>
             <span>Click any item to view</span>
           </div>
-          <span className="font-semibold text-[#1A1A1A]">Supabase FTS Indexed</span>
+          <span className="font-semibold text-[#1A1A1A]">Instant search</span>
         </div>
       </div>
     </div>
