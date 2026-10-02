@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -50,10 +50,9 @@ export default function OgImage() {
               marginBottom: '28px',
             }}
           />
-          <div style={{ fontSize: '44px', color: '#555555', lineHeight: 1.3 }}>
-            Copy the prompt.
-            <br />
-            Skip the guesswork.
+          <div style={{ display: 'flex', flexDirection: 'column', fontSize: '44px', color: '#555555', lineHeight: 1.3 }}>
+            <span>Copy the prompt.</span>
+            <span>Skip the guesswork.</span>
           </div>
         </div>
       </div>

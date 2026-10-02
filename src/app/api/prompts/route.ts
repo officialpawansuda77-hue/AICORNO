@@ -4,12 +4,33 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { isEmailAdmin } from '@/lib/authUtils';
 import { fetchPromptsFromDb } from '@/lib/supabaseService';
 
+import { parseMediaUrl } from '@/lib/mediaUtils';
+
 export const runtime = 'nodejs';
+
+function isValidOrigin(req: NextRequest): boolean {
+  const origin = req.headers.get('origin');
+  if (!origin) return true;
+  const host = req.headers.get('host') || '';
+  if (
+    origin.includes('aicorn.co.in') ||
+    origin.includes('vercel.app') ||
+    origin.includes('localhost') ||
+    (host && origin.includes(host))
+  ) {
+    return true;
+  }
+  try {
+    return new URL(origin).host === new URL(req.url).host;
+  } catch {
+    return false;
+  }
+}
 
 async function requireAdmin(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
-  if (req.headers.get('origin') !== new URL(req.url).origin) {
+  if (!isValidOrigin(req)) {
     return NextResponse.json({ error: 'Invalid origin' }, { status: 403 });
   }
   const user = await currentUser();
@@ -18,6 +39,18 @@ async function requireAdmin(req: NextRequest) {
   }
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return NextResponse.json({ error: 'Admin service not configured' }, { status: 503 });
+  }
+  return null;
+}
+
+async function requireUser(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+  if (!isValidOrigin(req)) {
+    return NextResponse.json({ error: 'Invalid origin' }, { status: 403 });
+  }
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ error: 'Database service not configured' }, { status: 503 });
   }
   return null;
 }
@@ -58,7 +91,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/prompts -> Supabase PostgreSQL Prompt Creation (Bypasses RLS with supabaseAdmin)
 export async function POST(req: NextRequest) {
-  const denied = await requireAdmin(req);
+  const denied = await requireUser(req);
   if (denied) return denied;
   try {
     const body = await req.json();
@@ -105,6 +138,13 @@ export async function POST(req: NextRequest) {
 
     const isValidUUID = body.created_by && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.created_by);
 
+    const parsedVid = body.video_url ? parseMediaUrl(body.video_url) : null;
+    const finalVideoUrl = body.type === 'video'
+      ? (parsedVid?.embedUrl || body.video_url || null)
+      : null;
+    const finalThumbnailUrl = body.thumbnail_url || body.preview_url || parsedVid?.thumbnailUrl || null;
+    const finalImageUrl = body.image_url || body.preview_url || parsedVid?.thumbnailUrl || null;
+
     const { data: newPrompt, error: insertError } = await supabaseAdmin
       .from('prompts')
       .insert({
@@ -119,9 +159,9 @@ export async function POST(req: NextRequest) {
         duration: body.duration || null,
         camera: cameraVal,
         lighting: body.lighting || null,
-        image_url: body.image_url || body.preview_url || null,
-        video_url: body.video_url || null,
-        thumbnail_url: body.thumbnail_url || body.preview_url || null,
+        image_url: finalImageUrl,
+        video_url: finalVideoUrl,
+        thumbnail_url: finalThumbnailUrl,
         status: body.status || 'published',
         featured: Boolean(body.featured ?? body.is_featured ?? true),
         trending: Boolean(body.trending ?? body.is_trending ?? true),

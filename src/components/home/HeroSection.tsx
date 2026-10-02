@@ -20,17 +20,21 @@ export default function HeroSection() {
   }, [prompts]);
 
   const marqueeRow1 = useMemo(() => {
+    if (marqueeItems.length === 0) return [];
     const half = Math.max(1, Math.ceil(marqueeItems.length / 2));
     let base = marqueeItems.slice(0, half);
-    while (base.length < 5) base = [...base, ...base];
+    if (base.length === 0) return [];
+    while (base.length < 5 && base.length > 0) base = [...base, ...base];
     return [...base, ...base];
   }, [marqueeItems]);
 
   const marqueeRow2 = useMemo(() => {
+    if (marqueeItems.length === 0) return [];
     const half = Math.ceil(marqueeItems.length / 2);
     let base = marqueeItems.slice(half);
     if (base.length === 0) base = marqueeItems;
-    while (base.length < 5) base = [...base, ...base];
+    if (base.length === 0) return [];
+    while (base.length < 5 && base.length > 0) base = [...base, ...base];
     return [...base, ...base];
   }, [marqueeItems]);
 
